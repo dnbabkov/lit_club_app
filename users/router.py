@@ -1,0 +1,41 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from lit_club_app.api.dependencies import get_db, get_current_user
+from lit_club_app.core.security import create_access_token
+from lit_club_app.users.models import User
+from lit_club_app.users.schemas import UserRegister, UserLogin, UserRead, TokenResponse
+from lit_club_app.users.service import user_service
+from lit_club_app.core.exceptions import (
+    UsernameAlreadyExistsError,
+    TelegramLoginAlreadyExistsError,
+    UserNotFoundError,
+    InvalidPasswordError,
+)
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+@router.post("/register", response_model=TokenResponse, status_code=201)
+def register_user(payload: UserRegister, db: Session = Depends(get_db)):
+    try:
+        user = user_service.register_user(db=db, user_data=payload)
+        access_token = create_access_token({"sub": str(user.id)})
+        return TokenResponse(access_token=access_token, token_type="bearer")
+    except (UsernameAlreadyExistsError, TelegramLoginAlreadyExistsError) as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+@router.post("/login", response_model=TokenResponse)
+def login_user(payload: UserLogin, db: Session = Depends(get_db)):
+    try:
+        user = user_service.authenticate_user(db=db, login_data=payload)
+        access_token = create_access_token({"sub": str(user.id)})
+        return TokenResponse(access_token=access_token, token_type="bearer")
+    except (UserNotFoundError, InvalidPasswordError):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@router.get("/me", response_model=UserRead, status_code=200)
+def get_user_me(current_user: User = Depends(get_current_user)):
+    try:
+        return current_user
+    except:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
