@@ -77,7 +77,7 @@ class NominationRepository:
         )
         result = db.execute(statement)
         return result.scalar_one_or_none()
-    def create_nomination(self, db: Session, user_id: int, book_id: int, selection: BookSelection, comment: str = None) -> Nomination:
+    def create_nomination(self, db: Session, user_id: int, book_id: int, selection: BookSelection, comment: str | None = None) -> Nomination:
         nomination = Nomination(user_id=user_id, selection_id=selection.id, book_id=book_id, comment=comment)
         try:
             db.add(nomination)
@@ -87,7 +87,7 @@ class NominationRepository:
         except Exception:
             db.rollback()
             raise
-    def update_nomination(self, db: Session, nomination: Nomination, book_id: int, comment: str = None) -> Nomination:
+    def update_nomination(self, db: Session, nomination: Nomination, book_id: int, comment: str | None = None) -> Nomination:
         try:
             nomination.book_id = book_id
             if comment is not None:
@@ -98,7 +98,7 @@ class NominationRepository:
         except Exception:
             db.rollback()
             raise
-    def update_nomination_comment(self, db: Session, nomination: Nomination, comment: str = None) -> Nomination:
+    def update_nomination_comment(self, db: Session, nomination: Nomination, comment: str | None = None) -> Nomination:
         try:
             nomination.comment = comment
             db.commit()

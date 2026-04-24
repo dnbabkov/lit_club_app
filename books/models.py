@@ -8,7 +8,9 @@ class Book(Base):
     title = Column(String, nullable=False)
     author = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    normalized_title = Column(String, nullable=False)
+    normalized_author = Column(String, nullable=False)
 
     __table_args__ = (
-        UniqueConstraint('title', 'author', name='_title_author_uc'),
+        UniqueConstraint('normalized_title', 'normalized_author', name='_title_author_uc'),
     )
