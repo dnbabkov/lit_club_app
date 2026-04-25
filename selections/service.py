@@ -162,7 +162,7 @@ class SelectionService:
         if selection is None:
             raise BookSelectionNotFoundError()
         if selection.status == BookSelectionStatus.NOMINATIONS_OPEN:
-            raise VotingNotOpenError
+            raise VotingNotOpenError()
         return self.vote_repo.get_vote_counts_for_selection(db=db, selection=selection)
 
     # Winner determination methods

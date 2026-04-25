@@ -14,3 +14,8 @@ class BookSelectionStatus(enum.Enum):
     VOTING_OPEN = "voting_open"
     VOTING_CLOSED = "voting_closed"
     WINNER_SELECTED = "winner_selected"
+
+class WinnerSelectionStatus(enum.Enum):
+    IN_PROGRESS = "in_progress"
+    READY_TO_FINALIZE = "ready_to_finalize"
+    FINALIZED = "finalized"
