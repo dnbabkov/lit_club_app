@@ -1,6 +1,6 @@
 from typing import Sequence
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from sqlalchemy.orm import Session
 
 from lit_club_app.selections.models import BookSelection, Nomination, Vote
@@ -128,6 +128,49 @@ class VoteRepository:
         )
         result = db.execute(statement)
         return result.scalars().all()
+    def get_user_votes_for_selection(self, db: Session, selection: BookSelection, user_id: int) -> Sequence[Vote]:
+        selection_id = selection.id
+        statement = (
+            select(Vote)
+            .join(Nomination, Vote.nomination_id == Nomination.id)
+            .where(
+                Nomination.selection_id == selection_id,
+                Vote.user_id == user_id
+            )
+        )
+        result = db.execute(statement)
+        return result.scalars().all()
+    def set_user_votes_for_selection(
+        self,
+        db: Session,
+        selection: BookSelection,
+        user_id: int,
+        nomination_ids: list[int],
+    ) -> Sequence[Vote]:
+        selection_id = selection.id
+
+        nomination_ids_subquery = (
+            select(Nomination.id)
+            .where(Nomination.selection_id == selection_id)
+        )
+
+        statement = (
+            delete(Vote)
+            .where(
+                Vote.user_id == user_id,
+                Vote.nomination_id.in_(nomination_ids_subquery),
+            )
+        )
+        try:
+            db.execute(statement)
+            votes = [Vote(user_id=user_id, nomination_id=nom_id) for nom_id in nomination_ids]
+            db.add_all(votes)
+            db.commit()
+            return self.get_user_votes_for_selection(db=db, selection=selection, user_id=user_id)
+        except Exception:
+            db.rollback()
+            raise
+
     def get_votes_for_nomination(self, db: Session, nomination: Nomination) -> Sequence[Vote]:
         nomination_id = nomination.id
         statement = select(Vote).where(Vote.nomination_id == nomination_id)

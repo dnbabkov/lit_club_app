@@ -85,3 +85,15 @@ class VoteError(SelectionError):
 class DuplicateVoteError(VoteError):
     """Raised when user tries to vote twice for the same nomination."""
     pass
+
+class BookSelectionExistsError(SelectionError):
+    pass
+
+class IncorrectVotingStatus(VoteError):
+    pass
+
+class WrongNominationError(NominationError):
+    pass
+
+class NoNominationVotesError(VoteError):
+    pass
