@@ -15,13 +15,7 @@ class MeetingRepository:
         )
         result = db.execute(statement)
         return result.scalar_one_or_none()
-    def create_meeting(
-        self,
-        db: Session,
-        status: MeetingStatus = MeetingStatus.BOOK_SELECTION,
-        book_id: int | None = None,
-        scheduled_for: datetime | None = None,
-    ) -> Meeting:
+    def create_meeting(self, db: Session, status: MeetingStatus = MeetingStatus.BOOK_SELECTION, book_id: int | None = None, scheduled_for: datetime | None = None) -> Meeting:
         meeting = Meeting(book_id=book_id, scheduled_for=scheduled_for, status=status)
         try:
             db.add(meeting)
@@ -31,6 +25,7 @@ class MeetingRepository:
         except Exception:
             db.rollback()
             raise
+
     def assign_book(self, db: Session, meeting: Meeting, book_id: int) -> Meeting:
         try:
             meeting.book_id = book_id
@@ -40,12 +35,8 @@ class MeetingRepository:
         except Exception:
             db.rollback()
             raise
-    def update_status(
-        self,
-        db: Session,
-        meeting: Meeting,
-        target_status: MeetingStatus,
-    ) -> Meeting:
+
+    def update_status(self, db: Session, meeting: Meeting, target_status: MeetingStatus) -> Meeting:
         try:
             meeting.status = target_status
             db.commit()
@@ -54,12 +45,12 @@ class MeetingRepository:
         except Exception:
             db.rollback()
             raise
-    def schedule_meeting(
-        self,
-        db: Session,
-        meeting: Meeting,
-        scheduled_for: datetime,
-    ) -> Meeting:
+
+    def assign_book_no_commit(self, db: Session, meeting: Meeting, book_id: int) -> Meeting:
+        meeting.book_id = book_id
+        return meeting
+
+    def schedule_meeting(self, db: Session, meeting: Meeting, scheduled_for: datetime) -> Meeting:
         try:
             meeting.scheduled_for = scheduled_for
             db.commit()
@@ -68,14 +59,17 @@ class MeetingRepository:
         except Exception:
             db.rollback()
             raise
+
     def get_all(self, db: Session) -> Sequence[Meeting]:
         statement = select(Meeting).order_by(Meeting.id.desc())
         result = db.execute(statement)
         return result.scalars().all()
+
     def get_latest(self, db: Session) -> Meeting | None:
         statement = select(Meeting).order_by(Meeting.id.desc()).limit(1)
         result = db.execute(statement)
         return result.scalar_one_or_none()
+
     def get_meetings_by_year(self, db: Session, year: int) -> Sequence[Meeting]:
         start_date = datetime(year, 1, 1)
         end_date = datetime(year+1, 1, 1)

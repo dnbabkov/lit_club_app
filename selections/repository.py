@@ -56,6 +56,22 @@ class BookSelectionRepository:
             db.rollback()
             raise
 
+    def assign_winning_nomination_and_update_status(self, db: Session, selection: BookSelection, winning_nomination_id: int, target_status: BookSelectionStatus) -> BookSelection:
+        try:
+            selection.winning_nomination_id=winning_nomination_id
+            selection.status=target_status
+            db.commit()
+            db.refresh(selection)
+            return selection
+        except Exception:
+            db.rollback()
+            raise
+
+    def assign_winning_nomination_and_update_status_no_commit(self, db: Session, selection: BookSelection, winning_nomination_id: int, target_status: BookSelectionStatus) -> BookSelection:
+        selection.winning_nomination_id = winning_nomination_id
+        selection.status = target_status
+        return selection
+
 class NominationRepository:
     def get_by_id(self, db: Session, nomination_id: int) -> Nomination | None:
         statement = (
@@ -154,13 +170,7 @@ class VoteRepository:
         result = db.execute(statement)
         return result.scalars().all()
 
-    def set_user_votes_for_selection(
-        self,
-        db: Session,
-        selection: BookSelection,
-        user_id: int,
-        nomination_ids: list[int],
-    ) -> Sequence[Vote]:
+    def set_user_votes_for_selection( self, db: Session, selection: BookSelection, user_id: int, nomination_ids: list[int]) -> Sequence[Vote]:
         selection_id = selection.id
 
         nomination_ids_subquery = (
@@ -205,86 +215,180 @@ class VoteRepository:
         return result.tuples().all()
 
 class WinnerSelectionSessionRepository:
-    def get_by_id(
-        self,
-        db: Session,
-        session_id: int,
-    ) -> WinnerSelectionSession | None:
-        ...
+    def get_by_id(self, db: Session, session_id: int,) -> WinnerSelectionSession | None:
+        statement = (
+            select(WinnerSelectionSession)
+            .where(WinnerSelectionSession.id == session_id)
+        )
+        result = db.execute(statement)
+        return result.scalar_one_or_none()
 
-    def get_by_selection_id(
-        self,
-        db: Session,
-        selection_id: int,
-    ) -> WinnerSelectionSession | None:
-        ...
+    def get_by_selection_id(self, db: Session, selection_id: int) -> WinnerSelectionSession | None:
+        statement = (
+            select(WinnerSelectionSession)
+            .where(WinnerSelectionSession.selection_id == selection_id)
+        )
+        result = db.execute(statement)
+        return result.scalar_one_or_none()
 
-    def create_session(
-        self,
-        db: Session,
-        selection_id: int,
-    ) -> WinnerSelectionSession:
-        ...
+    def create_session(self, db: Session, selection_id: int) -> WinnerSelectionSession:
+        session = WinnerSelectionSession(selection_id=selection_id)
+        try:
+            db.add(session)
+            db.commit()
+            db.refresh(session)
+            return session
+        except Exception:
+            db.rollback()
+            raise
 
-    def update_status(
-        self,
-        db: Session,
-        session: WinnerSelectionSession,
-        target_status: WinnerSelectionStatus,
-    ) -> WinnerSelectionSession:
-        ...
+    def update_status(self, db: Session, session: WinnerSelectionSession, target_status: WinnerSelectionStatus) -> WinnerSelectionSession:
+        try:
+            session.status = target_status
+            db.commit()
+            db.refresh(session)
+            return session
+        except Exception:
+            db.rollback()
+            raise
 
-    def set_current_round(
-        self,
-        db: Session,
-        session: WinnerSelectionSession,
-        round_number: int,
-    ) -> WinnerSelectionSession:
-        ...
+    def update_status_no_commit(self, db: Session, session: WinnerSelectionSession, target_status: WinnerSelectionStatus) -> WinnerSelectionSession:
+        session.status = target_status
+        return session
 
-    def set_winner_nomination(
-        self,
-        db: Session,
-        session: WinnerSelectionSession,
-        nomination_id: int,
-    ) -> WinnerSelectionSession:
-        ...
+    def set_current_round(self, db: Session, session: WinnerSelectionSession, round_number: int) -> WinnerSelectionSession:
+        try:
+            session.current_round = round_number
+            db.commit()
+            db.refresh(session)
+            return session
+        except Exception:
+            db.rollback()
+            raise
+
+    def set_winner_nomination(self, db: Session, session: WinnerSelectionSession, nomination_id: int) -> WinnerSelectionSession:
+        try:
+            session.winner_nomination_id = nomination_id
+            db.commit()
+            db.refresh(session)
+            return session
+        except Exception:
+            db.rollback()
+            raise
+
+    def set_winner_and_status(self, db: Session, session:WinnerSelectionSession, nomination_id: int, target_status: WinnerSelectionStatus) -> WinnerSelectionSession:
+        try:
+            session.winner_nomination_id = nomination_id
+            session.status = target_status
+            db.commit()
+            db.refresh(session)
+            return session
+        except Exception:
+            db.rollback()
+            raise
 
 class WinnerSelectionStepRepository:
-    def create_step(
-        self,
-        db: Session,
-        session: WinnerSelectionSession,
-        round_number: int,
-        eliminated_nomination_id: int,
-    ) -> WinnerSelectionStep:
-        ...
+    def create_step(self, db: Session, session: WinnerSelectionSession, round_number: int, eliminated_nomination_id: int) -> WinnerSelectionStep:
+        selection_step = WinnerSelectionStep(session_id=session.id, round_number=round_number, eliminated_nomination_id=eliminated_nomination_id)
+        try:
+            db.add(selection_step)
+            db.commit()
+            db.refresh(selection_step)
+            return selection_step
+        except Exception:
+            db.rollback()
+            raise
 
-    def create_step_candidates(
-        self,
-        db: Session,
-        step: WinnerSelectionStep,
-        candidates_data: list[dict],
-    ) -> Sequence[WinnerSelectionStepCandidate]:
-        ...
+    def create_step_candidates(self, db: Session, step: WinnerSelectionStep, candidates_data: list[dict]) -> Sequence[WinnerSelectionStepCandidate]:
+        try:
+            step_candidates = [
+                WinnerSelectionStepCandidate(
+                    step_id=step.id,
+                    nomination_id=candidate_data["nomination_id"],
+                    vote_count=candidate_data["vote_count"],
+                    elimination_weight=candidate_data["elimination_weight"],
+                    elimination_probability=candidate_data["elimination_probability"],
+                    was_eliminated=candidate_data["was_eliminated"],
+                )
+                for candidate_data in candidates_data
+            ]
+            db.add_all(step_candidates)
+            db.commit()
+            return self.get_candidates_for_step(db=db, step=step)
+        except Exception:
+            db.rollback()
+            raise
 
-    def get_steps_for_session(
-        self,
-        db: Session,
-        session: WinnerSelectionSession,
-    ) -> Sequence[WinnerSelectionStep]:
-        ...
+    def get_steps_for_session(self, db: Session, session: WinnerSelectionSession) -> Sequence[WinnerSelectionStep]:
+        statement = (
+            select(WinnerSelectionStep)
+            .where(WinnerSelectionStep.session_id == session.id)
+            .order_by(WinnerSelectionStep.round_number)
+        )
+        result = db.execute(statement)
+        return result.scalars().all()
 
-    def get_candidates_for_step(
-        self,
-        db: Session,
-        step: WinnerSelectionStep,
-    ) -> Sequence[WinnerSelectionStepCandidate]:
-        ...
+    def get_candidates_for_step(self, db: Session, step: WinnerSelectionStep) -> Sequence[WinnerSelectionStepCandidate]:
+        statement = (
+            select(WinnerSelectionStepCandidate)
+            .where(WinnerSelectionStepCandidate.step_id == step.id)
+        )
+        result = db.execute(statement)
+        return result.scalars().all()
 
-    def get_eliminated_nomination_ids_for_session(
-        self,
-        db: Session,
-        session: WinnerSelectionSession,
-    ) -> Sequence[int]:
-        ...
+    def get_eliminated_nomination_ids_for_session(self, db: Session, session: WinnerSelectionSession) -> Sequence[int]:
+        statement = (
+            select(WinnerSelectionStep.eliminated_nomination_id)
+            .where(WinnerSelectionStep.session_id == session.id)
+            .order_by(WinnerSelectionStep.round_number)
+        )
+        result = db.execute(statement)
+        return result.scalars().all()
+
+    def persist_winner_selection_step(
+            self,
+            db: Session,
+            session: WinnerSelectionSession,
+            round_number: int,
+            eliminated_nomination_id: int,
+            candidates_data: list[dict],
+            winner_nomination_id: int | None = None,
+            target_status: WinnerSelectionStatus | None = None
+    ) -> tuple[WinnerSelectionStep, Sequence[WinnerSelectionStepCandidate], WinnerSelectionSession]:
+        try:
+            step = WinnerSelectionStep(
+                session_id=session.id,
+                round_number=round_number,
+                eliminated_nomination_id=eliminated_nomination_id
+            )
+            db.add(step)
+            db.flush()
+
+            step_candidates = [
+                WinnerSelectionStepCandidate(
+                    step_id=step.id,
+                    nomination_id=candidate_data["nomination_id"],
+                    vote_count=candidate_data["vote_count"],
+                    elimination_weight=candidate_data["elimination_weight"],
+                    elimination_probability=candidate_data["elimination_probability"],
+                    was_eliminated=candidate_data["was_eliminated"],
+                )
+                for candidate_data in candidates_data
+            ]
+            db.add_all(step_candidates)
+
+            session.current_round = round_number
+
+            if winner_nomination_id is not None:
+                session.winner_nomination_id = winner_nomination_id
+
+            if target_status is not None:
+                session.status = target_status
+
+            db.commit()
+            db.refresh(step)
+            db.refresh(session)
+            return step, step_candidates, session
+        except Exception:
+            db.rollback()
+            raise

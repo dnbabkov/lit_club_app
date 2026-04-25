@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
-from lit_club_app.common.enums import BookSelectionStatus
+from lit_club_app.common.enums import BookSelectionStatus, WinnerSelectionStatus
+
 
 class BookSelectionCreate(BaseModel):
     meeting_id: int
@@ -45,9 +46,38 @@ class VoteCountRead(BaseModel):
 
 class WinnerSelectRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
     selection_id: int
     winning_nomination_id: int
     book_id: int
     title: str
     author: str
+    description: str
     vote_count: int
+
+class WinnerSelectionStepCandidateRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    nomination_id: int
+    vote_count: int
+    elimination_weight: float
+    elimination_probability: float
+    was_eliminated: bool
+
+class WinnerSelectionStepRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    step_id: int
+    round_number: int
+    eliminated_nomination_id: int
+    candidates: list[WinnerSelectionStepCandidateRead]
+
+class WinnerSelectionStateRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    session_id: int
+    selection_id: int
+    status: WinnerSelectionStatus
+    current_round: int
+    winner_nomination_id: int | None
+    steps: list[WinnerSelectionStepRead]

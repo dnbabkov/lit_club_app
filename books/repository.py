@@ -22,7 +22,11 @@ class BookRepository:
         result = db.execute(statement)
         return result.scalar_one_or_none()
     def create_book(self, db: Session, title: str, author: str, description: str | None = None) -> Book:
-        book = Book(title=title, author=author, description=description, normalized_title=title.strip().lower(), normalized_author=author.strip().lower())
+
+        clean_title = title.strip()
+        clean_author = author.strip()
+
+        book = Book(title=clean_title, author=clean_author, description=description, normalized_title=title.strip().lower(), normalized_author=author.strip().lower())
         try:
             db.add(book)
             db.commit()

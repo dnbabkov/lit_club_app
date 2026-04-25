@@ -97,3 +97,27 @@ class WrongNominationError(NominationError):
 
 class NoNominationVotesError(VoteError):
     pass
+
+class WinnerSelectionError(AppError):
+    pass
+
+class SessionNotFoundError(WinnerSelectionError):
+    pass
+
+class IncorrectSessionStatusError(WinnerSelectionError):
+    pass
+
+class NoEligibleNominationsError(WinnerSelectionError):
+    pass
+
+class SessionNotReadyToFinalizeError(WinnerSelectionError):
+    pass
+
+class NoWinnerFinalizeError(WinnerSelectionError):
+    pass
+
+class BookError(AppError):
+    pass
+
+class BookNotFoundError(BookError):
+    pass
