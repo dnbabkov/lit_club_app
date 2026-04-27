@@ -54,4 +54,7 @@ class ReviewService:
             raise BookNotFoundError()
         return self.review_repo.get_by_user_and_book(db=db, user_id=user_id, book_id=book_id)
 
+    def get_reviews_for_books(self, db: Session, book_ids: list[int]) -> Sequence[Review]:
+        return self.review_repo.get_all_for_books(db=db, book_ids=book_ids)
+
 review_service = ReviewService()

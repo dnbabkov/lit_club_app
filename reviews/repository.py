@@ -58,3 +58,14 @@ class ReviewRepository:
         except Exception:
             db.rollback()
             raise
+
+    def get_all_for_books(self, db: Session, book_ids: list[int]) -> Sequence[Review]:
+        if not book_ids:
+            return []
+
+        statement = (
+            select(Review)
+            .where(Review.book_id.in_(book_ids))
+        )
+        result = db.execute(statement)
+        return result.scalars().all()

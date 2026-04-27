@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Sequence
 
 from sqlalchemy.orm import Session
@@ -6,6 +7,7 @@ from lit_club_app.books.models import Book
 from lit_club_app.books.repository import BookRepository
 from lit_club_app.books.schemas import BookWithReviewsRead, BookRead, BooksRead
 from lit_club_app.core.exceptions import BookNotFoundError, EmptyDescriptionError, BookAlreadyExistsError
+from lit_club_app.reviews.models import Review
 from lit_club_app.reviews.repository import ReviewRepository
 from lit_club_app.reviews.service import review_service
 
@@ -43,15 +45,25 @@ class BookService:
 
     def get_finished_books_with_reviews(self, db: Session) -> list[BookWithReviewsRead]:
         finished_books = self.book_repo.get_finished_books_unique(db=db)
+        book_ids = [book.id for book in finished_books]
+
+        reviews = review_service.get_reviews_for_books(db=db, book_ids=book_ids)
+
+        reviews_by_book_id: dict[int, list[Review]] = defaultdict(list)
+        for review in reviews:
+            reviews_by_book_id[review.book_id].append(review)
+
         results = []
         for book in finished_books:
-            reviews = review_service.get_reviews_for_book(db=db, book_id=book.id)
-            review_reads = review_service.to_reviews_read(db=db, reviews=reviews)
+            book_reviews = reviews_by_book_id.get(book.id, [])
+            review_reads = review_service.to_reviews_read(db=db, reviews=book_reviews)
+
             result = {
                 "book": BookRead.model_validate(book),
-                "reviews": review_reads
+                "reviews": review_reads,
             }
             results.append(BookWithReviewsRead.model_validate(result))
+
         return results
 
     def to_books_read(self, db: Session, books: Sequence[Book]) -> BooksRead:
