@@ -15,7 +15,6 @@ class BookSelectionRead(BaseModel):
     winning_nomination_id: int | None
 
 class NominationCreate(BaseModel):
-    selection_id: int
     title: str
     author: str
     comment: str | None
@@ -23,6 +22,9 @@ class NominationCreate(BaseModel):
 class NominationUpdate(BaseModel):
     title: str
     author: str
+    comment: str | None
+
+class NominationCommentUpdate(BaseModel):
     comment: str | None
 
 class NominationRead(BaseModel):
@@ -36,7 +38,6 @@ class NominationRead(BaseModel):
     comment: str | None
 
 class VoteCreate(BaseModel):
-    selection_id: int
     nomination_ids: list[int]
 
 class VoteCountRead(BaseModel):
@@ -52,7 +53,7 @@ class WinnerSelectRead(BaseModel):
     book_id: int
     title: str
     author: str
-    description: str
+    description: str | None
     vote_count: int
 
 class WinnerSelectionStepCandidateRead(BaseModel):

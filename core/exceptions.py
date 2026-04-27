@@ -17,6 +17,9 @@ class UserNotFoundError(UserServiceError):
 class InvalidPasswordError(UserServiceError):
     pass
 
+class EmptyTelegramLoginError(UserServiceError):
+    pass
+
 
 class MeetingError(AppError):
     pass
@@ -24,6 +27,20 @@ class MeetingError(AppError):
 class MeetingNotFoundError(MeetingError):
     pass
 
+class LatestMeetingNotFinishedError(MeetingError):
+    pass
+
+class MeetingAlreadyScheduledError(MeetingError):
+    pass
+
+class ScheduleInThePastError(MeetingError):
+    pass
+
+class CantFinishMeetingError(MeetingError):
+    pass
+
+class LatestMeetingNotStartedError(MeetingError):
+    pass
 
 class SelectionError(AppError):
     """Base class for book selection process errors."""
@@ -121,3 +138,4 @@ class BookError(AppError):
 
 class BookNotFoundError(BookError):
     pass
+

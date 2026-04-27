@@ -53,6 +53,7 @@ class MeetingRepository:
     def schedule_meeting(self, db: Session, meeting: Meeting, scheduled_for: datetime) -> Meeting:
         try:
             meeting.scheduled_for = scheduled_for
+            meeting.status = MeetingStatus.SCHEDULED
             db.commit()
             db.refresh(meeting)
             return meeting

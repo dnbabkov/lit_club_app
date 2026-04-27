@@ -12,7 +12,7 @@ from lit_club_app.core.exceptions import (
     UsernameAlreadyExistsError,
     TelegramLoginAlreadyExistsError,
     UserNotFoundError,
-    InvalidPasswordError,
+    InvalidPasswordError, EmptyTelegramLoginError,
 )
 
 class UserService:
@@ -20,8 +20,7 @@ class UserService:
         self.repo = UserRepository()
 
     def _normalize_telegram_login(self, telegram_login: str) -> str:
-        if not telegram_login.startswith("@"):
-            telegram_login = f"@{telegram_login}"
+        telegram_login = telegram_login.strip().lstrip("@")
 
         return telegram_login
 
@@ -32,6 +31,8 @@ class UserService:
         password = user_data.password
 
         telegram_login = self._normalize_telegram_login(telegram_login)
+        if not telegram_login:
+            raise EmptyTelegramLoginError()
 
         if self.repo.get_by_username(db=db, username=username):
             raise UsernameAlreadyExistsError("Username is already taken")
@@ -56,6 +57,8 @@ class UserService:
         password = login_data.password
 
         telegram_login = self._normalize_telegram_login(telegram_login)
+        if not telegram_login:
+            raise EmptyTelegramLoginError()
 
         user = self.repo.get_by_telegram_login(db=db, telegram_login=telegram_login)
 

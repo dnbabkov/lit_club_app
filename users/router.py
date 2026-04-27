@@ -10,7 +10,7 @@ from lit_club_app.core.exceptions import (
     UsernameAlreadyExistsError,
     TelegramLoginAlreadyExistsError,
     UserNotFoundError,
-    InvalidPasswordError,
+    InvalidPasswordError, EmptyTelegramLoginError,
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -21,7 +21,7 @@ def register_user(payload: UserRegister, db: Session = Depends(get_db)):
         user = user_service.register_user(db=db, user_data=payload)
         access_token = create_access_token({"sub": str(user.id)})
         return TokenResponse(access_token=access_token, token_type="bearer")
-    except (UsernameAlreadyExistsError, TelegramLoginAlreadyExistsError) as e:
+    except (UsernameAlreadyExistsError, TelegramLoginAlreadyExistsError, EmptyTelegramLoginError) as e:
         raise HTTPException(status_code=409, detail=str(e))
 
 @router.post("/login", response_model=TokenResponse)
@@ -32,6 +32,8 @@ def login_user(payload: UserLogin, db: Session = Depends(get_db)):
         return TokenResponse(access_token=access_token, token_type="bearer")
     except (UserNotFoundError, InvalidPasswordError):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    except EmptyTelegramLoginError:
+        raise HTTPException(status_code=409, detail="Empty TG tag")
 
 @router.get("/me", response_model=UserRead, status_code=200)
 def get_user_me(current_user: User = Depends(get_current_user)):

@@ -1,5 +1,7 @@
 from collections import Counter
 from random import choices
+from typing import Sequence
+
 from sqlalchemy.orm import Session
 
 from lit_club_app.books.repository import BookRepository
@@ -26,7 +28,7 @@ from lit_club_app.core.exceptions import (
 )
 from lit_club_app.selections.schemas import (
     WinnerSelectionStateRead,
-    WinnerSelectRead,
+    WinnerSelectRead, NominationRead,
 )
 from lit_club_app.books.models import Book
 from lit_club_app.selections.models import BookSelection, Nomination
@@ -62,6 +64,24 @@ class SelectionService:
         if nomination is None:
             raise NominationNotFoundError()
         return nomination
+
+    def to_nomination_read(self, db: Session, nomination: Nomination) -> NominationRead:
+        book = self.book_repo.get_by_id(db=db, book_id=nomination.book_id)
+        if book is None:
+            raise BookNotFoundError()
+
+        return NominationRead(
+            id=nomination.id,
+            user_id=nomination.user_id,
+            selection_id=nomination.selection_id,
+            book_id=nomination.book_id,
+            title=book.title,
+            author=book.author,
+            comment=nomination.comment,
+        )
+
+    def to_nominations_read(self, db: Session, nominations: Sequence[Nomination]) -> list[NominationRead]:
+        return [self.to_nomination_read(db=db, nomination=nomination) for nomination in nominations]
 
     # Selection methods
     def create_selection(self, db: Session, meeting_id: int) -> BookSelection:
@@ -120,7 +140,6 @@ class SelectionService:
 
     def replace_user_nomination(self, db: Session, selection_id: int, user_id: int, title: str, author: str, comment: str | None):
         nomination = self.get_editable_user_nomination(db=db, selection_id=selection_id, user_id=user_id)
-
         book = self.get_or_create_book(db=db, author=author, title=title)
         return self.nomination_repo.update_nomination(db=db, nomination=nomination, book_id=book.id, comment=comment)
 
@@ -371,3 +390,5 @@ class SelectionService:
         }
 
         return WinnerSelectRead.model_validate(winner_selected_data)
+
+selection_service = SelectionService()
