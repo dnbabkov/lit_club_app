@@ -9,6 +9,10 @@ class UserRepository:
         statement = select(User).where(User.id == user_id)
         result = db.execute(statement)
         return result.scalar_one_or_none()
+    def get_username_by_id(self, db: Session, user_id: int) -> str | None:
+        statement = select(User.username).where(User.id == user_id)
+        result = db.execute(statement)
+        return result.scalar_one_or_none()
     def get_by_username(self, db: Session, username: str) -> User | None:
         statement = select(User).where(User.username == username)
         result = db.execute(statement)

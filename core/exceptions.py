@@ -139,3 +139,8 @@ class BookError(AppError):
 class BookNotFoundError(BookError):
     pass
 
+class EmptyDescriptionError(BookError):
+    pass
+
+class BookAlreadyExistsError(BookError):
+    pass

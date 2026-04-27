@@ -1,7 +1,14 @@
-from sqlalchemy import select
+from typing import Sequence
+
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from lit_club_app.books.models import Book
+from lit_club_app.core.exceptions import BookNotFoundError
+from lit_club_app.meetings.models import Meeting
+from lit_club_app.common.enums import MeetingStatus
+from lit_club_app.reviews.models import Review
+
 
 class BookRepository:
     def get_by_id(self, db: Session, book_id: int) -> Book | None:
@@ -11,6 +18,7 @@ class BookRepository:
         )
         result = db.execute(statement)
         return result.scalar_one_or_none()
+
     def get_by_norm_title_and_author(self, db: Session, norm_title: str, norm_author: str) -> Book | None:
         statement = (
             select(Book)
@@ -35,3 +43,48 @@ class BookRepository:
         except Exception:
             db.rollback()
             raise
+
+    def get_all_books(self, db: Session) -> Sequence[Book]:
+        statement = (select(Book))
+        result = db.execute(statement)
+        return result.scalars().all()
+
+    def get_meeting_books(self, db: Session) -> Sequence[tuple[Book, MeetingStatus]]:
+        statement = (
+            select(Book, Meeting.status)
+            .join(Meeting, Meeting.book_id == Book.id)
+            .where(Meeting.status != MeetingStatus.BOOK_SELECTION)
+        )
+        result = db.execute(statement)
+        return result.tuples().all()
+
+    def add_description(self, db: Session, book: Book, description: str) -> Book:
+        try:
+            book.description = description
+            db.commit()
+            db.refresh(book)
+            return book
+        except Exception:
+            db.rollback()
+            raise
+
+    def get_finished_books_unique(self, db: Session) -> Sequence[Book]:
+        statement = (
+            select(Book)
+            .join(Meeting, Meeting.book_id == Book.id)
+            .where(Meeting.status == MeetingStatus.FINISHED)
+            .distinct()
+        )
+        result = db.execute(statement)
+        return result.scalars().all()
+
+    def get_book_rating(self, db: Session, book_id: int) -> float | None:
+        book = self.get_by_id(db=db, book_id=book_id)
+        if book is None:
+            raise BookNotFoundError()
+        statement = (
+            select(func.round(func.avg(Review.rating), 1))
+            .where(Review.book_id == book.id)
+        )
+        result = db.execute(statement)
+        return result.scalar_one()
