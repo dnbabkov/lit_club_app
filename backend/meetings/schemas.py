@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from lit_club_app.common.enums import MeetingStatus
+from lit_club_app.backend.common.enums import MeetingStatus
 
 class MeetingCreate(BaseModel):
     status: MeetingStatus | None = None

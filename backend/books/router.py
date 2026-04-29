@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
-from lit_club_app.api.dependencies import get_db, get_current_user
-from lit_club_app.books.schemas import BooksRead, BookRead, BookChangeDescription, BookCreate, BookWithReviewsRead
-from lit_club_app.books.service import book_service
-from lit_club_app.core.exceptions import BookNotFoundError, EmptyDescriptionError, BookAlreadyExistsError
+from lit_club_app.backend.api.dependencies import get_db, get_current_user
+from lit_club_app.backend.books.schemas import BooksRead, BookRead, BookChangeDescription, BookCreate, BookWithReviewsRead
+from lit_club_app.backend.books.service import book_service
+from lit_club_app.backend.core.exceptions import BookNotFoundError, EmptyDescriptionError, BookAlreadyExistsError
 
 router = APIRouter(prefix="/books", tags=["books"])
 

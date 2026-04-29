@@ -6,15 +6,15 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from lit_club_app.core.config import settings
-from lit_club_app.db.base import Base
-from lit_club_app.db.session import database_url
+from lit_club_app.backend.core.config import settings
+from lit_club_app.backend.db.base import Base
+from lit_club_app.backend.db.session import database_url
 
-from lit_club_app.users import models as users_models
-from lit_club_app.books import models as books_models
-from lit_club_app.meetings import models as meetings_models
-from lit_club_app.selections import models as selections_models
-# from lit_club_app.reviews import models as reviews_models
+from lit_club_app.backend.users import models as users_models
+from lit_club_app.backend.books import models as books_models
+from lit_club_app.backend.meetings import models as meetings_models
+from lit_club_app.backend.selections import models as selections_models
+# from lit_club_app.backend.reviews import models as reviews_models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

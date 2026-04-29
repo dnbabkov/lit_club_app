@@ -4,8 +4,8 @@ from typing import Sequence
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from lit_club_app.meetings.models import Meeting
-from lit_club_app.common.enums import MeetingStatus
+from lit_club_app.backend.meetings.models import Meeting
+from lit_club_app.backend.common.enums import MeetingStatus
 
 class MeetingRepository:
     def get_by_id(self, db: Session, meeting_id: int) -> Meeting | None:

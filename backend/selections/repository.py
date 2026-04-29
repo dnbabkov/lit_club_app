@@ -3,9 +3,9 @@ from typing import Sequence
 from sqlalchemy import select, func, delete
 from sqlalchemy.orm import Session
 
-from lit_club_app.selections.models import BookSelection, Nomination, Vote, WinnerSelectionSession, WinnerSelectionStep, \
+from lit_club_app.backend.selections.models import BookSelection, Nomination, Vote, WinnerSelectionSession, WinnerSelectionStep, \
     WinnerSelectionStepCandidate
-from lit_club_app.common.enums import BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus
 
 
 class BookSelectionRepository:

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from lit_club_app.common.enums import BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus
 
 
 class BookSelectionCreate(BaseModel):

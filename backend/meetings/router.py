@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from lit_club_app.api.dependencies import get_db, get_current_user
-from lit_club_app.users.models import User
-from lit_club_app.common.enums import Roles
-from lit_club_app.meetings.schemas import (
+from lit_club_app.backend.api.dependencies import get_db, get_current_user
+from lit_club_app.backend.users.models import User
+from lit_club_app.backend.common.enums import Roles
+from lit_club_app.backend.meetings.schemas import (
     MeetingCreate,
     MeetingRead,
     MeetingScheduleUpdate,
     MeetingWithSelectionRead,
 )
-from lit_club_app.meetings.service import meeting_service
-from lit_club_app.core.exceptions import (
+from lit_club_app.backend.meetings.service import meeting_service
+from lit_club_app.backend.core.exceptions import (
     MeetingNotFoundError,
     LatestMeetingNotFinishedError,
     ScheduleInThePastError,

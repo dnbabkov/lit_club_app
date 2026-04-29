@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from lit_club_app.api.dependencies import get_db, get_current_user
-from lit_club_app.core.security import create_access_token
-from lit_club_app.users.models import User
-from lit_club_app.users.schemas import UserRegister, UserLogin, UserRead, TokenResponse
-from lit_club_app.users.service import user_service
-from lit_club_app.core.exceptions import (
+from lit_club_app.backend.api.dependencies import get_db, get_current_user
+from lit_club_app.backend.core.security import create_access_token
+from lit_club_app.backend.users.models import User
+from lit_club_app.backend.users.schemas import UserRegister, UserLogin, UserRead, TokenResponse
+from lit_club_app.backend.users.service import user_service
+from lit_club_app.backend.core.exceptions import (
     UsernameAlreadyExistsError,
     TelegramLoginAlreadyExistsError,
     UserNotFoundError,

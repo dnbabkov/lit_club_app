@@ -3,8 +3,8 @@ from typing import Sequence
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from lit_club_app.core.exceptions import BookNotFoundError
-from lit_club_app.reviews.models import Review
+from lit_club_app.backend.core.exceptions import BookNotFoundError
+from lit_club_app.backend.reviews.models import Review
 
 
 class ReviewRepository:

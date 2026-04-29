@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, UniqueConstraint, Float, Boolean
-from lit_club_app.db.base import Base
+from lit_club_app.backend.db.base import Base
 
-from lit_club_app.common.enums import BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus
 
 
 class BookSelection(Base):

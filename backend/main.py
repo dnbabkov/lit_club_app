@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 
-from lit_club_app.users.router import router as users_router
-from lit_club_app.selections.router import router as selections_router
-from lit_club_app.meetings.router import router as meetings_router
-from lit_club_app.books.router import router as books_router
-from lit_club_app.reviews.router import router as reviews_router
+from lit_club_app.backend.users.router import router as users_router
+from lit_club_app.backend.selections.router import router as selections_router
+from lit_club_app.backend.meetings.router import router as meetings_router
+from lit_club_app.backend.books.router import router as books_router
+from lit_club_app.backend.reviews.router import router as reviews_router
 
 app = FastAPI(
     title="Literature Club API",

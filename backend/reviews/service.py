@@ -1,12 +1,12 @@
 from typing import Sequence
 from sqlalchemy.orm import Session
 
-from lit_club_app.books.repository import BookRepository
-from lit_club_app.core.exceptions import BookNotFoundError
-from lit_club_app.reviews.models import Review
-from lit_club_app.reviews.repository import ReviewRepository
-from lit_club_app.reviews.schemas import ReviewRead
-from lit_club_app.users.repository import UserRepository
+from lit_club_app.backend.books.repository import BookRepository
+from lit_club_app.backend.core.exceptions import BookNotFoundError
+from lit_club_app.backend.reviews.models import Review
+from lit_club_app.backend.reviews.repository import ReviewRepository
+from lit_club_app.backend.reviews.schemas import ReviewRead
+from lit_club_app.backend.users.repository import UserRepository
 
 
 class ReviewService:

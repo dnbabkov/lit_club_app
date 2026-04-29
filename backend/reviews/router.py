@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
-from lit_club_app.api.dependencies import get_db, get_current_user
-from lit_club_app.core.exceptions import BookNotFoundError
-from lit_club_app.reviews.schemas import ReviewRead, ReviewCreate
-from lit_club_app.reviews.service import review_service
-from lit_club_app.users.models import User
+from lit_club_app.backend.api.dependencies import get_db, get_current_user
+from lit_club_app.backend.core.exceptions import BookNotFoundError
+from lit_club_app.backend.reviews.schemas import ReviewRead, ReviewCreate
+from lit_club_app.backend.reviews.service import review_service
+from lit_club_app.backend.users.models import User
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 

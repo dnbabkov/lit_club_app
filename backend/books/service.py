@@ -3,13 +3,13 @@ from typing import Sequence
 
 from sqlalchemy.orm import Session
 
-from lit_club_app.books.models import Book
-from lit_club_app.books.repository import BookRepository
-from lit_club_app.books.schemas import BookWithReviewsRead, BookRead, BooksRead
-from lit_club_app.core.exceptions import BookNotFoundError, EmptyDescriptionError, BookAlreadyExistsError
-from lit_club_app.reviews.models import Review
-from lit_club_app.reviews.repository import ReviewRepository
-from lit_club_app.reviews.service import review_service
+from lit_club_app.backend.books.models import Book
+from lit_club_app.backend.books.repository import BookRepository
+from lit_club_app.backend.books.schemas import BookWithReviewsRead, BookRead, BooksRead
+from lit_club_app.backend.core.exceptions import BookNotFoundError, EmptyDescriptionError, BookAlreadyExistsError
+from lit_club_app.backend.reviews.models import Review
+from lit_club_app.backend.reviews.repository import ReviewRepository
+from lit_club_app.backend.reviews.service import review_service
 
 
 class BookService:

@@ -2,11 +2,11 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import select
 
-from lit_club_app.users.models import User
-from lit_club_app.books.models import Book
-from lit_club_app.meetings.models import Meeting
-from lit_club_app.reviews.models import Review
-from lit_club_app.common.enums import Roles, MeetingStatus
+from lit_club_app.backend.users.models import User
+from lit_club_app.backend.books.models import Book
+from lit_club_app.backend.meetings.models import Meeting
+from lit_club_app.backend.reviews.models import Review
+from lit_club_app.backend.common.enums import Roles, MeetingStatus
 
 
 def auth_headers(token: str) -> dict[str, str]:

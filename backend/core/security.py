@@ -4,7 +4,7 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 
-from lit_club_app.core.config import settings
+from lit_club_app.backend.core.config import settings
 
 password_hasher = PasswordHash.recommended()
 

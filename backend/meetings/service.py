@@ -3,22 +3,22 @@ from typing import Sequence
 
 from sqlalchemy.orm import Session
 
-from lit_club_app.common.enums import MeetingStatus
-from lit_club_app.core.exceptions import (
+from lit_club_app.backend.common.enums import MeetingStatus
+from lit_club_app.backend.core.exceptions import (
     MeetingNotFoundError, LatestMeetingNotFinishedError, ScheduleInThePastError,
     CantFinishMeetingError, LatestMeetingNotStartedError,
 )
-from lit_club_app.meetings.models import Meeting
-from lit_club_app.meetings.repository import MeetingRepository
-from lit_club_app.meetings.schemas import (
+from lit_club_app.backend.meetings.models import Meeting
+from lit_club_app.backend.meetings.repository import MeetingRepository
+from lit_club_app.backend.meetings.schemas import (
     MeetingCreate,
     MeetingRead,
     MeetingScheduleUpdate,
     MeetingStatusUpdate, MeetingWithSelectionRead,
 )
-from lit_club_app.selections.repository import BookSelectionRepository
-from lit_club_app.selections.models import BookSelection
-from lit_club_app.selections.service import selection_service
+from lit_club_app.backend.selections.repository import BookSelectionRepository
+from lit_club_app.backend.selections.models import BookSelection
+from lit_club_app.backend.selections.service import selection_service
 
 class MeetingService:
     def __init__(self):

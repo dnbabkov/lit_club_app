@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from lit_club_app.users.models import User
-from lit_club_app.common.enums import Roles
+from lit_club_app.backend.users.models import User
+from lit_club_app.backend.common.enums import Roles
 
 class UserRepository:
     def get_by_id(self, db: Session, user_id: int) -> User | None:

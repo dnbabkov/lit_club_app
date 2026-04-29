@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
-from lit_club_app.common.enums import MeetingStatus
-from lit_club_app.reviews.schemas import ReviewRead
+from lit_club_app.backend.common.enums import MeetingStatus
+from lit_club_app.backend.reviews.schemas import ReviewRead
 
 class BookCreate(BaseModel):
     title: str

@@ -3,10 +3,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
-from lit_club_app.db.session import SessionLocal
-from lit_club_app.core.security import decode_access_token
-from lit_club_app.users.models import User
-from lit_club_app.users.repository import UserRepository
+from lit_club_app.backend.db.session import SessionLocal
+from lit_club_app.backend.core.security import decode_access_token
+from lit_club_app.backend.users.models import User
+from lit_club_app.backend.users.repository import UserRepository
 
 security = HTTPBearer(auto_error=False)
 user_repo = UserRepository()

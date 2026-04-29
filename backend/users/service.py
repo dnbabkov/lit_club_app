@@ -1,14 +1,14 @@
 from sqlalchemy.orm import Session
 
-from lit_club_app.users.models import User
-from lit_club_app.users.schemas import UserRegister, UserLogin
+from lit_club_app.backend.users.models import User
+from lit_club_app.backend.users.schemas import UserRegister, UserLogin
 
-from lit_club_app.common.enums import Roles
+from lit_club_app.backend.common.enums import Roles
 
-from lit_club_app.users.repository import UserRepository
+from lit_club_app.backend.users.repository import UserRepository
 
-from lit_club_app.core.security import hash_password, verify_password
-from lit_club_app.core.exceptions import (
+from lit_club_app.backend.core.security import hash_password, verify_password
+from lit_club_app.backend.core.exceptions import (
     UsernameAlreadyExistsError,
     TelegramLoginAlreadyExistsError,
     UserNotFoundError,

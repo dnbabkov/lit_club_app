@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, UniqueConstraint
-from lit_club_app.db.base import Base
+from lit_club_app.backend.db.base import Base
 
 class Book(Base):
     __tablename__ = "books"

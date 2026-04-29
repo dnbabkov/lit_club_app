@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, DateTime, Enum, ForeignKey, CheckConstraint, Float, Boolean, String, \
     UniqueConstraint
-from lit_club_app.db.base import Base
+from lit_club_app.backend.db.base import Base
 
 class Review(Base):
     __tablename__ = "reviews"

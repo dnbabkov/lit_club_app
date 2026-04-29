@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Enum
-from lit_club_app.db.base import Base
-from lit_club_app.common.enums import Roles
+from lit_club_app.backend.db.base import Base
+from lit_club_app.backend.common.enums import Roles
 
 class User(Base):
     __tablename__ = "users"

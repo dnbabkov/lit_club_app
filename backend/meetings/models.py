@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, DateTime, Enum, ForeignKey
-from lit_club_app.db.base import Base
+from lit_club_app.backend.db.base import Base
 
-from lit_club_app.common.enums import MeetingStatus
+from lit_club_app.backend.common.enums import MeetingStatus
 
 class Meeting(Base):
     __tablename__ = "meetings"

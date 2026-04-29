@@ -4,15 +4,15 @@ from typing import Sequence
 
 from sqlalchemy.orm import Session
 
-from lit_club_app.books.repository import BookRepository
-from lit_club_app.meetings.repository import MeetingRepository
-from lit_club_app.selections.repository import (
+from lit_club_app.backend.books.repository import BookRepository
+from lit_club_app.backend.meetings.repository import MeetingRepository
+from lit_club_app.backend.selections.repository import (
     BookSelectionRepository,
     NominationRepository,
     VoteRepository, WinnerSelectionSessionRepository, WinnerSelectionStepRepository,
 )
-from lit_club_app.common.enums import BookSelectionStatus, WinnerSelectionStatus
-from lit_club_app.core.exceptions import (
+from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.core.exceptions import (
     MeetingNotFoundError,
     BookSelectionNotFoundError,
     BookSelectionExistsError,
@@ -26,12 +26,12 @@ from lit_club_app.core.exceptions import (
     WrongNominationError, NoNominationVotesError, SessionNotFoundError, IncorrectSessionStatusError,
     NoEligibleNominationsError, SessionNotReadyToFinalizeError, NoWinnerFinalizeError, BookNotFoundError,
 )
-from lit_club_app.selections.schemas import (
+from lit_club_app.backend.selections.schemas import (
     WinnerSelectionStateRead,
     WinnerSelectRead, NominationRead,
 )
-from lit_club_app.books.models import Book
-from lit_club_app.selections.models import BookSelection, Nomination
+from lit_club_app.backend.books.models import Book
+from lit_club_app.backend.selections.models import BookSelection, Nomination
 
 class SelectionService:
     def __init__(self):

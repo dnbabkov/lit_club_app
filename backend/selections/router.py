@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from lit_club_app.api.dependencies import get_db, get_current_user
-from lit_club_app.users.models import User
-from lit_club_app.common.enums import Roles
-from lit_club_app.selections.schemas import (
+from lit_club_app.backend.api.dependencies import get_db, get_current_user
+from lit_club_app.backend.users.models import User
+from lit_club_app.backend.common.enums import Roles
+from lit_club_app.backend.selections.schemas import (
     BookSelectionCreate,
     BookSelectionRead,
     NominationCreate,
@@ -15,8 +15,8 @@ from lit_club_app.selections.schemas import (
     WinnerSelectionStateRead,
     WinnerSelectRead, NominationCommentUpdate,
 )
-from lit_club_app.selections.service import selection_service
-from lit_club_app.core.exceptions import (
+from lit_club_app.backend.selections.service import selection_service
+from lit_club_app.backend.core.exceptions import (
     MeetingNotFoundError,
     BookSelectionNotFoundError,
     BookSelectionExistsError,

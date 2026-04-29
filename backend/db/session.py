@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker
 
-from lit_club_app.core.config import settings
+from lit_club_app.backend.core.config import settings
 
 database_url = URL.create(
     drivername="postgresql+psycopg",

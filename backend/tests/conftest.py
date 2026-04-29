@@ -4,15 +4,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from lit_club_app.main import app
-from lit_club_app.api.dependencies import get_db
-from lit_club_app.db.base import Base
+from lit_club_app.backend.main import app
+from lit_club_app.backend.api.dependencies import get_db
+from lit_club_app.backend.db.base import Base
 
 # ВАЖНО: эти импорты нужны, чтобы все модели зарегистрировались в Base.metadata
-from lit_club_app.users import models as users_models  # noqa: F401
-from lit_club_app.books import models as books_models  # noqa: F401
-from lit_club_app.meetings import models as meetings_models  # noqa: F401
-from lit_club_app.selections import models as selections_models  # noqa: F401
+from lit_club_app.backend.users import models as users_models  # noqa: F401
+from lit_club_app.backend.books import models as books_models  # noqa: F401
+from lit_club_app.backend.meetings import models as meetings_models  # noqa: F401
+from lit_club_app.backend.selections import models as selections_models  # noqa: F401
 
 
 TEST_DATABASE_URL = "sqlite://"

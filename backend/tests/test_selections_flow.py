@@ -1,10 +1,10 @@
 from sqlalchemy import select
 
-from lit_club_app.users.models import User
-from lit_club_app.books.models import Book
-from lit_club_app.meetings.models import Meeting
-from lit_club_app.selections.models import BookSelection, WinnerSelectionSession
-from lit_club_app.common.enums import Roles, MeetingStatus, BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.users.models import User
+from lit_club_app.backend.books.models import Book
+from lit_club_app.backend.meetings.models import Meeting
+from lit_club_app.backend.selections.models import BookSelection, WinnerSelectionSession
+from lit_club_app.backend.common.enums import Roles, MeetingStatus, BookSelectionStatus, WinnerSelectionStatus
 
 import pytest
 

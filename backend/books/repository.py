@@ -3,11 +3,11 @@ from typing import Sequence
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from lit_club_app.books.models import Book
-from lit_club_app.core.exceptions import BookNotFoundError
-from lit_club_app.meetings.models import Meeting
-from lit_club_app.common.enums import MeetingStatus
-from lit_club_app.reviews.models import Review
+from lit_club_app.backend.books.models import Book
+from lit_club_app.backend.core.exceptions import BookNotFoundError
+from lit_club_app.backend.meetings.models import Meeting
+from lit_club_app.backend.common.enums import MeetingStatus
+from lit_club_app.backend.reviews.models import Review
 
 
 class BookRepository:
