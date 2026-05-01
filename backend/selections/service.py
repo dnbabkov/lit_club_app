@@ -206,14 +206,6 @@ class SelectionService:
 
     def get_current_selection(self, db: Session) -> CurrentSelectionRead:
         latest_meeting = self.meeting_repo.get_latest(db=db)
-        return CurrentSelectionRead.model_validate({
-            "selection_id": None,
-            "meeting_id": None,
-            "meeting_status": None,
-            "selection_status": None,
-            "winner_selection_session_id": None,
-        })
-
         selection = None
         winner_session = None
 
