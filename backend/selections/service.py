@@ -209,6 +209,15 @@ class SelectionService:
         selection = None
         winner_session = None
 
+        if latest_meeting is None:
+            return CurrentSelectionRead.model_validate({
+                "selection_id": None,
+                "meeting_id": None,
+                "meeting_status": None,
+                "selection_status": None,
+                "winner_selection_session_id": None,
+            })
+
         if latest_meeting.status == MeetingStatus.BOOK_SELECTION:
             selection = self.book_select_repo.get_by_meeting_id(
                 db=db,
