@@ -13,7 +13,7 @@ from lit_club_app.backend.selections.schemas import (
     VoteCreate,
     VoteCountRead,
     WinnerSelectionStateRead,
-    WinnerSelectRead, NominationCommentUpdate,
+    WinnerSelectRead, NominationCommentUpdate, CurrentSelectionRead, CurrentUserVotesRead,
 )
 from lit_club_app.backend.selections.service import selection_service
 from lit_club_app.backend.core.exceptions import (
@@ -50,6 +50,13 @@ def create_selection(payload: BookSelectionCreate, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Meeting not found")
     except BookSelectionExistsError:
         raise HTTPException(status_code=409, detail="This selection already exists")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+@router.get("/current", response_model=CurrentSelectionRead, dependencies=[Depends(get_current_user)])
+def get_current_selection(db: Session = Depends(get_db)):
+    try:
+        return selection_service.get_current_selection(db=db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
@@ -167,6 +174,23 @@ def get_vote_counts_for_selection(selection_id: int, db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail="Book selection not found")
     except VotingNotOpenError:
         raise HTTPException(status_code=409, detail="Voting has not started yet")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+@router.get("/{selection_id}/votes/me", response_model=CurrentUserVotesRead)
+def get_current_user_votes_for_selection(
+    selection_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        return selection_service.get_current_user_vote_ids_for_selection(
+            db=db,
+            selection_id=selection_id,
+            user_id=current_user.id,
+        )
+    except BookSelectionNotFoundError:
+        raise HTTPException(status_code=404, detail="Book selection not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 

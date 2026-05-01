@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus, MeetingStatus
 
 
 class BookSelectionCreate(BaseModel):
@@ -82,3 +82,13 @@ class WinnerSelectionStateRead(BaseModel):
     current_round: int
     winner_nomination_id: int | None
     steps: list[WinnerSelectionStepRead]
+
+class CurrentSelectionRead(BaseModel):
+    selection_id: int | None
+    meeting_id: int | None
+    meeting_status: MeetingStatus | None
+    selection_status: BookSelectionStatus | None
+    winner_selection_session_id: int | None
+
+class CurrentUserVotesRead(BaseModel):
+    nomination_ids: list[int]

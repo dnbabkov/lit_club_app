@@ -11,7 +11,7 @@ from lit_club_app.backend.selections.repository import (
     NominationRepository,
     VoteRepository, WinnerSelectionSessionRepository, WinnerSelectionStepRepository,
 )
-from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus, MeetingStatus
 from lit_club_app.backend.core.exceptions import (
     MeetingNotFoundError,
     BookSelectionNotFoundError,
@@ -28,7 +28,7 @@ from lit_club_app.backend.core.exceptions import (
 )
 from lit_club_app.backend.selections.schemas import (
     WinnerSelectionStateRead,
-    WinnerSelectRead, NominationRead,
+    WinnerSelectRead, NominationRead, CurrentSelectionRead, CurrentUserVotesRead,
 )
 from lit_club_app.backend.books.models import Book
 from lit_club_app.backend.selections.models import BookSelection, Nomination
@@ -178,6 +178,17 @@ class SelectionService:
             raise VotingNotOpenError()
         return self.vote_repo.get_vote_counts_for_selection(db=db, selection=selection)
 
+    def get_current_user_vote_ids_for_selection(self, db: Session, selection_id: int, user_id: int) -> CurrentUserVotesRead:
+        selection = self.book_select_repo.get_by_id(db=db, selection_id=selection_id)
+        if selection is None:
+            raise BookSelectionNotFoundError()
+
+        votes = self.vote_repo.get_user_votes_for_selection(db=db, selection=selection, user_id=user_id)
+
+        return CurrentUserVotesRead(
+            nomination_ids=[vote.nomination_id for vote in votes],
+        )
+
     # Winner determination methods
     def start_winner_selection(self, db: Session, selection_id: int) -> WinnerSelectionStateRead:
         selection = self.book_select_repo.get_by_id(db=db, selection_id=selection_id)
@@ -192,6 +203,35 @@ class SelectionService:
 
         session = self.winner_selection_repo.create_session(db=db, selection_id=selection.id)
         return self.get_winner_selection_state(db=db, session_id=session.id)
+
+    def get_current_selection(self, db: Session) -> CurrentSelectionRead:
+        latest_meeting = self.meeting_repo.get_latest(db=db)
+        return CurrentSelectionRead.model_validate({
+            "selection_id": None,
+            "meeting_id": None,
+            "meeting_status": None,
+            "selection_status": None,
+            "winner_selection_session_id": None,
+        })
+
+        selection = None
+        winner_session = None
+
+        if latest_meeting.status == MeetingStatus.BOOK_SELECTION:
+            selection = self.book_select_repo.get_by_meeting_id(
+                db=db,
+                meeting_id=latest_meeting.id,
+            )
+            if selection is not None:
+                winner_session = self.winner_selection_repo.get_by_selection_id(db=db, selection_id=selection.id)
+
+        return CurrentSelectionRead(
+            selection_id=selection.id if selection is not None else None,
+            meeting_id=latest_meeting.id,
+            meeting_status=latest_meeting.status,
+            selection_status=selection.status if selection is not None else None,
+            winner_selection_session_id=winner_session.id if winner_session is not None else None,
+        )
 
     def advance_winner_selection_step(self, db: Session, session_id: int) -> WinnerSelectionStateRead:
         session = self.winner_selection_repo.get_by_id(db=db, session_id=session_id)
