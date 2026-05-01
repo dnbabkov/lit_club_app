@@ -23,6 +23,10 @@ import type {
 } from "../types/selections"
 import { NominationsList } from "../components/selections/NominationsList"
 import { NominationForm } from "../components/selections/NominationForm"
+import { SelectionStatusBlock } from "../components/selections/SelectionStatusBlock"
+import { VotingPanel } from "../components/selections/VotingPanel"
+import { SelectionModeratorActions } from "../components/selections/SelectionModeratorActions"
+import { WinnerStepsBlock } from "../components/selections/WinnerStepsBlock"
 
 export function SelectionPage() {
   const { user } = useAuth()
@@ -34,6 +38,7 @@ export function SelectionPage() {
   const [winnerState, setWinnerState] = useState<WinnerSelectionStateRead | null>(null)
 
   const [selectedNominationIds, setSelectedNominationIds] = useState<number[]>([])
+  const [isEditingVote, setIsEditingVote] = useState(false)
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,14 +56,20 @@ export function SelectionPage() {
         setNominations([])
         setVoteCounts([])
         setMyVoteIds([])
+        setSelectedNominationIds([])
         setWinnerState(null)
+        setIsEditingVote(false)
         return
       }
 
       const nominationsData = await getNominations(current.selection_id)
       setNominations(nominationsData)
 
-      if (current.selection_status === "voting_open" || current.selection_status === "voting_closed" || current.selection_status === "winner_selected") {
+      if (
+        current.selection_status === "voting_open" ||
+        current.selection_status === "voting_closed" ||
+        current.selection_status === "winner_selected"
+      ) {
         const counts = await getVoteCounts(current.selection_id)
         setVoteCounts(counts)
       } else {
@@ -69,13 +80,16 @@ export function SelectionPage() {
         const myVotes = await getMyVotesForSelection(current.selection_id)
         setMyVoteIds(myVotes.nomination_ids)
         setSelectedNominationIds(myVotes.nomination_ids)
+        setIsEditingVote(false)
       } else {
         setMyVoteIds([])
         setSelectedNominationIds([])
+        setIsEditingVote(false)
       }
 
       if (
-        (current.selection_status === "voting_closed" || current.selection_status === "winner_selected") &&
+        (current.selection_status === "voting_closed" ||
+          current.selection_status === "winner_selected") &&
         current.winner_selection_session_id !== null
       ) {
         const state = await getWinnerSelectionState(current.winner_selection_session_id)
@@ -128,6 +142,7 @@ export function SelectionPage() {
 
   async function handleOpenVoting() {
     if (!currentSelection?.selection_id) return
+
     setIsSubmitting(true)
     setErrorMessage("")
 
@@ -149,6 +164,7 @@ export function SelectionPage() {
 
   async function handleCloseVoting() {
     if (!currentSelection?.selection_id) return
+
     setIsSubmitting(true)
     setErrorMessage("")
 
@@ -170,6 +186,7 @@ export function SelectionPage() {
 
   async function handleStartWinnerSelection() {
     if (!currentSelection?.selection_id) return
+
     setIsSubmitting(true)
     setErrorMessage("")
 
@@ -191,6 +208,7 @@ export function SelectionPage() {
 
   async function handleAdvanceWinnerSelection() {
     if (!winnerState?.session_id) return
+
     setIsSubmitting(true)
     setErrorMessage("")
 
@@ -212,6 +230,7 @@ export function SelectionPage() {
 
   async function handleFinalizeWinnerSelection() {
     if (!winnerState?.session_id) return
+
     setIsSubmitting(true)
     setErrorMessage("")
 
@@ -231,6 +250,11 @@ export function SelectionPage() {
     }
   }
 
+  function handleStartEditingVote() {
+    setSelectedNominationIds(myVoteIds)
+    setIsEditingVote(true)
+  }
+
   function toggleNominationSelection(nominationId: number) {
     setSelectedNominationIds((prev) =>
       prev.includes(nominationId)
@@ -244,150 +268,18 @@ export function SelectionPage() {
     : null
 
   const isModerator = user?.role === "moderator"
-
-  function renderNoActiveSelection() {
-    if (!currentSelection) {
-      return <p>Нет данных о текущем выборе книги.</p>
-    }
-
-    if (currentSelection.meeting_status === "scheduled") {
-      return <p>Выбор книги завершён.</p>
-    }
-
-    if (currentSelection.meeting_status === "finished") {
-      return <p>Выбор книги не начат.</p>
-    }
-
-    if (currentSelection.meeting_status === null) {
-      return <p>Встреч пока нет.</p>
-    }
-
-    return <p>Текущий выбор книги отсутствует.</p>
-  }
-
-  function renderVotingStage() {
-    const countByNominationId = new Map(voteCounts.map((item) => [item.nomination_id, item.vote_count]))
-    const userHasVoted = myVoteIds.length > 0
-
-    return (
-      <>
-        <p>Сейчас идёт голосование.</p>
-
-        <form onSubmit={handleVoteSubmit}>
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {nominations.map((nomination) => (
-              <li
-                key={nomination.id}
-                style={{
-                  marginBottom: 12,
-                  padding: 12,
-                  border: "1px solid #ddd",
-                  borderRadius: 8,
-                }}
-              >
-                <label style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  {!userHasVoted && (
-                    <input
-                      type="checkbox"
-                      checked={selectedNominationIds.includes(nomination.id)}
-                      onChange={() => toggleNominationSelection(nomination.id)}
-                    />
-                  )}
-
-                  <div>
-                    <div>
-                      <strong>{nomination.title}</strong> — {nomination.author}
-                    </div>
-                    <div style={{ fontSize: 14, color: "#555" }}>
-                      Голосов: {countByNominationId.get(nomination.id) ?? 0}
-                    </div>
-                  </div>
-                </label>
-              </li>
-            ))}
-          </ul>
-
-          {!userHasVoted && (
-            <button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Отправляем..." : "Проголосовать"}
-            </button>
-          )}
-        </form>
-
-        {isModerator && (
-          <div style={{ marginTop: 24 }}>
-            <button onClick={handleCloseVoting} disabled={isSubmitting}>
-              Завершить голосование
-            </button>
-          </div>
-        )}
-      </>
-    )
-  }
-
-  function renderWinnerSteps() {
-    return (
-      <>
-        <p>Голосование завершено. Идёт определение победителя.</p>
-
-        {winnerState?.steps.length ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {winnerState.steps.map((step) => (
-              <div
-                key={step.step_id}
-                style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}
-              >
-                <h3>Шаг {step.round_number}</h3>
-
-                <ul>
-                  {step.candidates.map((candidate) => (
-                    <li key={candidate.nomination_id}>
-                      Номинация #{candidate.nomination_id}: {candidate.vote_count} голосов, шанс вылета{" "}
-                      {(candidate.elimination_probability * 100).toFixed(1)}%
-                      {candidate.was_eliminated ? " — выбыла" : ""}
-                    </li>
-                  ))}
-                </ul>
-
-                <p>
-                  Вылетел кандидат: <strong>{step.eliminated_nomination_id}</strong>
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p>Шагов пока нет.</p>
-        )}
-
-        {winnerState?.winner_nomination_id && (
-          <p>
-            Победившая номинация: <strong>{winnerState.winner_nomination_id}</strong>
-          </p>
-        )}
-
-        {isModerator && winnerState?.status === "in_progress" && (
-          <button onClick={handleAdvanceWinnerSelection} disabled={isSubmitting}>
-            Следующий шаг
-          </button>
-        )}
-
-        {isModerator && winnerState?.status === "ready_to_finalize" && (
-          <button onClick={handleFinalizeWinnerSelection} disabled={isSubmitting}>
-            Финализировать
-          </button>
-        )}
-      </>
-    )
-  }
+  const userHasVoted = myVoteIds.length > 0
 
   function renderActiveSelection() {
     if (!currentSelection || currentSelection.selection_id === null) {
       return null
     }
 
-    const status = currentSelection.selection_status
+    const selectionStatus = currentSelection.selection_status
+    const hasWinnerSession = currentSelection.winner_selection_session_id !== null
+    const winnerStateStatus = winnerState?.status ?? null
 
-    if (status === "nominations_open") {
+    if (selectionStatus === "nominations_open") {
       return (
         <>
           <p>Сейчас идёт этап предложения книг.</p>
@@ -402,36 +294,96 @@ export function SelectionPage() {
           )}
 
           {isModerator && (
-            <div style={{ marginTop: 24 }}>
-              <button onClick={handleOpenVoting} disabled={isSubmitting}>
-                Завершить сбор номинаций
-              </button>
-            </div>
+            <SelectionModeratorActions
+              selectionStatus={selectionStatus}
+              hasWinnerSession={hasWinnerSession}
+              winnerStateStatus={winnerStateStatus}
+              isSubmitting={isSubmitting}
+              onOpenVoting={handleOpenVoting}
+              onCloseVoting={handleCloseVoting}
+              onStartWinnerSelection={handleStartWinnerSelection}
+              onAdvanceWinnerSelection={handleAdvanceWinnerSelection}
+              onFinalizeWinnerSelection={handleFinalizeWinnerSelection}
+            />
           )}
         </>
       )
     }
 
-    if (status === "voting_open") {
-      return renderVotingStage()
+    if (selectionStatus === "voting_open") {
+      return (
+        <>
+          <VotingPanel
+            nominations={nominations}
+            voteCounts={voteCounts}
+            selectedNominationIds={selectedNominationIds}
+            userHasVoted={userHasVoted}
+            isEditingVote={isEditingVote}
+            isSubmitting={isSubmitting}
+            onToggleNomination={toggleNominationSelection}
+            onSubmit={handleVoteSubmit}
+            onStartEditing={handleStartEditingVote}
+          />
+
+          {isModerator && (
+            <SelectionModeratorActions
+              selectionStatus={selectionStatus}
+              hasWinnerSession={hasWinnerSession}
+              winnerStateStatus={winnerStateStatus}
+              isSubmitting={isSubmitting}
+              onOpenVoting={handleOpenVoting}
+              onCloseVoting={handleCloseVoting}
+              onStartWinnerSelection={handleStartWinnerSelection}
+              onAdvanceWinnerSelection={handleAdvanceWinnerSelection}
+              onFinalizeWinnerSelection={handleFinalizeWinnerSelection}
+            />
+          )}
+        </>
+      )
     }
 
-    if (status === "voting_closed" || status === "winner_selected") {
-      if (currentSelection.winner_selection_session_id === null) {
-        return (
-          <>
-            <p>Голосование завершено.</p>
+    if (selectionStatus === "voting_closed" || selectionStatus === "winner_selected") {
+      return (
+        <>
+          {!hasWinnerSession ? (
+            <>
+              <p>Голосование завершено.</p>
 
-            {isModerator && (
-              <button onClick={handleStartWinnerSelection} disabled={isSubmitting}>
-                Начать определение победителя
-              </button>
-            )}
-          </>
-        )
-      }
+              {isModerator && (
+                <SelectionModeratorActions
+                  selectionStatus={selectionStatus}
+                  hasWinnerSession={hasWinnerSession}
+                  winnerStateStatus={winnerStateStatus}
+                  isSubmitting={isSubmitting}
+                  onOpenVoting={handleOpenVoting}
+                  onCloseVoting={handleCloseVoting}
+                  onStartWinnerSelection={handleStartWinnerSelection}
+                  onAdvanceWinnerSelection={handleAdvanceWinnerSelection}
+                  onFinalizeWinnerSelection={handleFinalizeWinnerSelection}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              <WinnerStepsBlock winnerState={winnerState} />
 
-      return renderWinnerSteps()
+              {isModerator && (
+                <SelectionModeratorActions
+                  selectionStatus={selectionStatus}
+                  hasWinnerSession={hasWinnerSession}
+                  winnerStateStatus={winnerStateStatus}
+                  isSubmitting={isSubmitting}
+                  onOpenVoting={handleOpenVoting}
+                  onCloseVoting={handleCloseVoting}
+                  onStartWinnerSelection={handleStartWinnerSelection}
+                  onAdvanceWinnerSelection={handleAdvanceWinnerSelection}
+                  onFinalizeWinnerSelection={handleFinalizeWinnerSelection}
+                />
+              )}
+            </>
+          )}
+        </>
+      )
     }
 
     return <p>Неизвестный статус выбора книги.</p>
@@ -449,9 +401,11 @@ export function SelectionPage() {
 
       {!isLoading && !errorMessage && (
         <>
-          {currentSelection?.selection_id === null
-            ? renderNoActiveSelection()
-            : renderActiveSelection()}
+          {currentSelection?.selection_id === null ? (
+            <SelectionStatusBlock currentSelection={currentSelection} />
+          ) : (
+            renderActiveSelection()
+          )}
         </>
       )}
     </Layout>

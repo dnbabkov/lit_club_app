@@ -67,7 +67,14 @@ class MeetingRepository:
         return result.scalars().all()
 
     def get_latest(self, db: Session) -> Meeting | None:
-        statement = select(Meeting).order_by(Meeting.id.desc()).limit(1)
+        statement = (
+            select(Meeting)
+            .order_by(
+                Meeting.scheduled_for.desc().nullsfirst(),
+                Meeting.id.desc(),
+            )
+            .limit(1)
+        )
         result = db.execute(statement)
         return result.scalar_one_or_none()
 
