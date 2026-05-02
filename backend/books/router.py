@@ -5,6 +5,8 @@ from lit_club_app.backend.api.dependencies import get_db, get_current_user
 from lit_club_app.backend.books.schemas import BooksRead, BookRead, BookChangeDescription, BookCreate, BookWithReviewsRead
 from lit_club_app.backend.books.service import book_service
 from lit_club_app.backend.core.exceptions import BookNotFoundError, EmptyDescriptionError, BookAlreadyExistsError
+from lit_club_app.backend.reviews.schemas import ReviewRead
+from lit_club_app.backend.reviews.service import review_service
 
 router = APIRouter(prefix="/books", tags=["books"])
 
@@ -57,6 +59,16 @@ def create_book(payload: BookCreate, db: Session = Depends(get_db)):
 def get_book(book_id: int, db: Session = Depends(get_db)):
     try:
         return book_service.get_book(db=db, book_id=book_id)
+    except BookNotFoundError:
+        raise HTTPException(status_code=404, detail="Book not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+@router.get("/{book_id}/reviews", response_model=list[ReviewRead], dependencies=[Depends(get_current_user)])
+def get_book_reviews(book_id: int, db: Session = Depends(get_db)):
+    try:
+        reviews = review_service.get_book_reviews(db=db, book_id=book_id)
+        return review_service.to_reviews_read(db=db, book_reviews=reviews)
     except BookNotFoundError:
         raise HTTPException(status_code=404, detail="Book not found")
     except Exception as e:
