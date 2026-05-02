@@ -1,10 +1,23 @@
-import type { WinnerSelectionStateRead } from "../../types/selections"
+import type { NominationRead, WinnerSelectionStateRead } from "../../types/selections"
+import {formatVotes} from "../../utils/pluralize.ts";
 
 type WinnerStepsBlockProps = {
   winnerState: WinnerSelectionStateRead | null
+  nominations: NominationRead[]
 }
 
-export function WinnerStepsBlock({ winnerState }: WinnerStepsBlockProps) {
+export function WinnerStepsBlock({
+  winnerState,
+  nominations,
+}: WinnerStepsBlockProps) {
+  const nominationTitleById = new Map(
+    nominations.map((nomination) => [nomination.id, nomination.title])
+  )
+
+  function getNominationTitle(nominationId: number): string {
+    return nominationTitleById.get(nominationId) ?? `Номинация #${nominationId}`
+  }
+
   return (
     <>
       <p>Голосование завершено. Идёт определение победителя.</p>
@@ -21,15 +34,17 @@ export function WinnerStepsBlock({ winnerState }: WinnerStepsBlockProps) {
               <ul>
                 {step.candidates.map((candidate) => (
                   <li key={candidate.nomination_id}>
-                    Номинация #{candidate.nomination_id}: {candidate.vote_count} голосов, шанс
-                    вылета {(candidate.elimination_probability * 100).toFixed(1)}%
+                    {getNominationTitle(candidate.nomination_id)}:{" "}
+                    {formatVotes(candidate.vote_count)}, шанс вылета{" "}
+                    {(candidate.elimination_probability * 100).toFixed(1)}%
                     {candidate.was_eliminated ? " — выбыла" : ""}
                   </li>
                 ))}
               </ul>
 
               <p>
-                Вылетел кандидат: <strong>{step.eliminated_nomination_id}</strong>
+                Вылетел кандидат:{" "}
+                <strong>{getNominationTitle(step.eliminated_nomination_id)}</strong>
               </p>
             </div>
           ))}
@@ -40,7 +55,8 @@ export function WinnerStepsBlock({ winnerState }: WinnerStepsBlockProps) {
 
       {winnerState?.winner_nomination_id && (
         <p>
-          Победившая номинация: <strong>{winnerState.winner_nomination_id}</strong>
+          Победившая номинация:{" "}
+          <strong>{getNominationTitle(winnerState.winner_nomination_id)}</strong>
         </p>
       )}
     </>

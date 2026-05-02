@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus, MeetingStatus
 
@@ -19,10 +19,42 @@ class NominationCreate(BaseModel):
     author: str
     comment: str | None
 
+    @field_validator("title", "author")
+    @classmethod
+    def validate_non_empty_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Field cannot be empty")
+        return value
+
+    @field_validator("comment")
+    @classmethod
+    def normalize_comment(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
 class NominationUpdate(BaseModel):
     title: str
     author: str
     comment: str | None
+
+    @field_validator("title", "author")
+    @classmethod
+    def validate_non_empty_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Field cannot be empty")
+        return value
+
+    @field_validator("comment")
+    @classmethod
+    def normalize_comment(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
 
 class NominationCommentUpdate(BaseModel):
     comment: str | None

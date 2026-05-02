@@ -17,13 +17,23 @@ export function NominationForm({ selectionId, onSuccess }: NominationFormProps) 
   async function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage("")
+
+    const cleanTitle = title.trim()
+    const cleanAuthor = author.trim()
+    const cleanComment = comment.trim()
+
+    if (!cleanTitle || !cleanAuthor) {
+      setErrorMessage("Укажите название и автора")
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       await createNomination(selectionId, {
-        title,
-        author,
-        comment: comment || null,
+        title: cleanTitle,
+        author: cleanAuthor,
+        comment: cleanComment ? cleanComment : null,
       })
 
       setTitle("")
@@ -83,7 +93,10 @@ export function NominationForm({ selectionId, onSuccess }: NominationFormProps) 
         <p style={{ color: "crimson", marginBottom: 12 }}>{errorMessage}</p>
       )}
 
-      <button type="submit" disabled={isSubmitting}>
+      <button
+        type="submit"
+        disabled={isSubmitting || !title.trim() || !author.trim()}
+      >
         {isSubmitting ? "Отправляем..." : "Предложить"}
       </button>
     </form>

@@ -4,13 +4,16 @@ import type { BookRead } from "../../types/books"
 type BookCardProps = {
   book: BookRead
   onEditDescription?: (bookId: number) => void
+  from?: "/books" | "/books/finished"
 }
 
-export function BookCard({ book, onEditDescription }: BookCardProps) {
+export function BookCard({ book, onEditDescription, from = "/books" }: BookCardProps) {
   const navigate = useNavigate()
 
   function handleOpenBookPage() {
-    navigate(`/books/${book.id}`)
+    navigate(`/books/${book.id}`, {
+      state: { from },
+    })
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {

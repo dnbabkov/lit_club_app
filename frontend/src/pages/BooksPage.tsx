@@ -85,6 +85,7 @@ export function BooksPage() {
               <BookCard
                 book={book}
                 onEditDescription={handleOpenEditDescription}
+                from="/books"
               />
 
               {editingBookId === book.id && (

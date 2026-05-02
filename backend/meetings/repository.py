@@ -62,7 +62,7 @@ class MeetingRepository:
             raise
 
     def get_all(self, db: Session) -> Sequence[Meeting]:
-        statement = select(Meeting).order_by(Meeting.id.desc())
+        statement = select(Meeting).order_by(Meeting.scheduled_for.desc().nullsfirst(), Meeting.id.desc())
         result = db.execute(statement)
         return result.scalars().all()
 

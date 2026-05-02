@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Layout } from "../components/Layout"
 import { ApiError } from "../api/http"
 import { getBook } from "../api/books"
@@ -22,6 +22,10 @@ function formatAverageRating(reviews: ReviewRead[]): string {
 
 export function BookPage() {
   const { bookId } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const from = location.state?.from as "/books" | "/books/finished" | undefined
 
   const [book, setBook] = useState<BookRead | null>(null)
   const [reviews, setReviews] = useState<ReviewRead[]>([])
@@ -96,6 +100,16 @@ export function BookPage() {
 
   return (
     <Layout>
+      <button
+        type="button"
+        onClick={() => navigate(from ?? "/books")}
+        style={{ marginBottom: 16 }}
+      >
+        {from === "/books/finished"
+          ? "Назад к прочитанным книгам"
+          : "Назад к списку книг"}
+      </button>
+
       <h1>Книга</h1>
 
       {isLoading && <p>Загрузка...</p>}

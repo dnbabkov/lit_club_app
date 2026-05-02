@@ -48,7 +48,8 @@ export function MeetingCard({
   const { meeting, book } = meetingWithBook
 
   const canScheduleMeeting =
-    meeting.status === "book_selection" || meeting.status === "scheduled"
+    (meeting.status === "book_selection" && meeting.book_id !== null) ||
+    meeting.status === "scheduled"
 
   const canFinishMeeting = meeting.status === "scheduled"
 

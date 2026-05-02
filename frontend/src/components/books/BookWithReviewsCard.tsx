@@ -36,7 +36,9 @@ export function BookWithReviewsCard({ item }: BookWithReviewsCardProps) {
   }, [reviews])
 
   function handleOpenBookPage() {
-    navigate(`/books/${book.id}`)
+    navigate(`/books/${book.id}`, {
+      state: { from: "/books/finished" },
+    })
   }
 
   return (
@@ -46,6 +48,16 @@ export function BookWithReviewsCard({ item }: BookWithReviewsCardProps) {
         borderRadius: 8,
         padding: 16,
         marginBottom: 16,
+        cursor: "pointer",
+      }}
+      onClick={handleOpenBookPage}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          handleOpenBookPage()
+        }
       }}
     >
       <h3 style={{ marginTop: 0, marginBottom: 8 }}>{book.title}</h3>
@@ -63,13 +75,11 @@ export function BookWithReviewsCard({ item }: BookWithReviewsCardProps) {
 
         {previewReview ? (
           <div
-            onClick={handleOpenBookPage}
             style={{
               marginTop: 8,
               padding: 12,
               background: "#f8f8f8",
               borderRadius: 8,
-              cursor: "pointer",
             }}
           >
             <div style={{ marginBottom: 6, fontWeight: 500 }}>

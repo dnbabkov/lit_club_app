@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type SyntheticEvent } from "react"
+import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "react"
 import { Layout } from "../components/Layout"
 import { useAuth } from "../auth/AuthContext"
 import { ApiError } from "../api/http"
@@ -21,6 +21,7 @@ import type {
   VoteCountRead,
   WinnerSelectionStateRead,
 } from "../types/selections"
+import { MyNominationEditor } from "../components/selections/MyNominationEditor.tsx";
 import { NominationsList } from "../components/selections/NominationsList"
 import { NominationForm } from "../components/selections/NominationForm"
 import { SelectionStatusBlock } from "../components/selections/SelectionStatusBlock"
@@ -44,13 +45,24 @@ export function SelectionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
 
-  const loadSelectionData = useCallback(async () => {
-    setIsLoading(true)
-    setErrorMessage("")
+  const refreshInFlightRef = useRef(false)
+
+  const loadSelectionData = useCallback(async (silent = false) => {
+    if (refreshInFlightRef.current) {
+      return
+    }
+
+    refreshInFlightRef.current = true
+
+    if (!silent) {
+      setIsLoading(true)
+      setErrorMessage("")
+    }
 
     try {
       const current = await getCurrentSelection()
       setCurrentSelection(current)
+      setErrorMessage("")
 
       if (current.selection_id === null) {
         setNominations([])
@@ -106,13 +118,29 @@ export function SelectionPage() {
         setErrorMessage("Unexpected error")
       }
     } finally {
-      setIsLoading(false)
+      refreshInFlightRef.current = false
+
+      if (!silent) {
+        setIsLoading(false)
+      }
     }
   }, [])
 
   useEffect(() => {
-    loadSelectionData()
+    void loadSelectionData()
   }, [loadSelectionData])
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (!isSubmitting) {
+        void loadSelectionData(true)
+      }
+    }, 3000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [loadSelectionData, isSubmitting])
 
   async function handleVoteSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -286,9 +314,15 @@ export function SelectionPage() {
 
           <NominationsList nominations={nominations} />
 
-          {!myNomination && (
+          {!myNomination ? (
             <NominationForm
               selectionId={currentSelection.selection_id}
+              onSuccess={loadSelectionData}
+            />
+          ) : (
+            <MyNominationEditor
+              selectionId={currentSelection.selection_id}
+              nomination={myNomination}
               onSuccess={loadSelectionData}
             />
           )}
@@ -365,7 +399,7 @@ export function SelectionPage() {
             </>
           ) : (
             <>
-              <WinnerStepsBlock winnerState={winnerState} />
+              <WinnerStepsBlock winnerState={winnerState} nominations={nominations} />
 
               {isModerator && (
                 <SelectionModeratorActions

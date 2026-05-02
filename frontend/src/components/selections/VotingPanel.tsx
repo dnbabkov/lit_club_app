@@ -1,5 +1,6 @@
 import type { SyntheticEvent } from "react"
 import type { NominationRead, VoteCountRead } from "../../types/selections"
+import {formatVotes} from "../../utils/pluralize.ts";
 
 type VotingPanelProps = {
   nominations: NominationRead[]
@@ -64,7 +65,7 @@ export function VotingPanel({
                     <strong>{nomination.title}</strong> — {nomination.author}
                   </div>
                   <div style={{ fontSize: 14, color: "#555" }}>
-                    Голосов: {countByNominationId.get(nomination.id) ?? 0}
+                    {formatVotes(countByNominationId.get(nomination.id) ?? 0)}
                   </div>
                 </div>
               </label>

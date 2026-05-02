@@ -101,11 +101,16 @@ export function MeetingsPage() {
     setSchedulingMeetingId((prev) => (prev === meetingId ? null : meetingId))
   }
 
+  const latestMeeting = meetingsWithBooks.length > 0 ? meetingsWithBooks[0].meeting : null
+
+  const canStartNextCycle =
+    isModerator && (latestMeeting === null || latestMeeting.status !== "book_selection")
+
   return (
     <Layout>
       <h1>Встречи</h1>
 
-      {isModerator && (
+      {canStartNextCycle && (
         <div style={{ marginBottom: 24 }}>
           <button onClick={handleStartNext} disabled={isSubmitting}>
             {isSubmitting ? "Создаём..." : "Начать следующий цикл"}

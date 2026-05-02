@@ -109,7 +109,7 @@ class UserService:
                 if selection is None:
                     raise BookSelectionNotFoundError()
 
-                meeting = self.meeting_repo.get_by_id(db=db, meeting_id=nomination.meeting_id)
+                meeting = self.meeting_repo.get_by_id(db=db, meeting_id=selection.meeting_id)
                 if meeting is None:
                     raise MeetingNotFoundError()
 
