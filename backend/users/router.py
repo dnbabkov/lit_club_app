@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from lit_club_app.backend.api.dependencies import get_db, get_current_user
 from lit_club_app.backend.core.security import create_access_token
 from lit_club_app.backend.users.models import User
-from lit_club_app.backend.users.schemas import UserRegister, UserLogin, UserRead, TokenResponse
+from lit_club_app.backend.users.schemas import UserRegister, UserLogin, UserRead, TokenResponse, UserProfileRead
 from lit_club_app.backend.users.service import user_service
 from lit_club_app.backend.core.exceptions import (
     UsernameAlreadyExistsError,
@@ -41,3 +41,12 @@ def get_user_me(current_user: User = Depends(get_current_user)):
         return current_user
     except:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@router.get("/me/profile", response_model=UserProfileRead, status_code=200)
+def get_user_profile(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        return user_service.get_user_profile(db=db, user_id=current_user.id)
+    except UserNotFoundError:
+        raise HTTPException(status_code=404, detail="User not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")

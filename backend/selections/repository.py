@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from lit_club_app.backend.selections.models import BookSelection, Nomination, Vote, WinnerSelectionSession, WinnerSelectionStep, \
     WinnerSelectionStepCandidate
 from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.users.models import User
 
 
 class BookSelectionRepository:
@@ -101,6 +102,14 @@ class NominationRepository:
         )
         result = db.execute(statement)
         return result.scalar_one_or_none()
+
+    def get_all_user_nominations(self, db: Session, user: User) -> Sequence[Nomination]:
+        statement = (
+            select(Nomination)
+            .where(Nomination.user_id == user.id)
+        )
+        result = db.execute(statement)
+        return result.scalars().all()
 
     def create_nomination(self, db: Session, user_id: int, book_id: int, selection: BookSelection, comment: str | None = None) -> Nomination:
         nomination = Nomination(user_id=user_id, selection_id=selection.id, book_id=book_id, comment=comment)

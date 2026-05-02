@@ -21,3 +21,23 @@ class UserRead(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+
+class UserProfileBookRatingRead(BaseModel):
+    username: str | None
+    rating: int
+
+class UserProfileBookRead(BaseModel):
+    book_id: int
+    title: str
+    author: str
+    nomination_count: int
+    meeting_dates: list[str]
+    has_won: bool
+    ratings: list[UserProfileBookRatingRead]
+
+class UserProfileRead(BaseModel):
+    id: int
+    username: str
+    telegram_login: str
+    role: Roles
+    nominated_books: list[UserProfileBookRead]
