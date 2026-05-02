@@ -3,6 +3,7 @@ export type ReviewRead = {
   username: string | null
   book_id: number
   rating: number
+  anonymous: boolean
   review_text: string | null
 }
 

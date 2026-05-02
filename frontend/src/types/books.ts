@@ -1,16 +1,10 @@
+import type {ReviewRead} from "./reviews.ts";
+
 export type BookRead = {
   id: number
   title: string
   author: string
   description: string | null
-}
-
-export type ReviewRead = {
-  id: number
-  username: string | null
-  book_id: number
-  rating: number
-  review_text: string | null
 }
 
 export type BookWithReviewsRead = {

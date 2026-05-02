@@ -67,8 +67,8 @@ def get_book(book_id: int, db: Session = Depends(get_db)):
 @router.get("/{book_id}/reviews", response_model=list[ReviewRead], dependencies=[Depends(get_current_user)])
 def get_book_reviews(book_id: int, db: Session = Depends(get_db)):
     try:
-        reviews = review_service.get_book_reviews(db=db, book_id=book_id)
-        return review_service.to_reviews_read(db=db, book_reviews=reviews)
+        reviews = review_service.get_reviews_for_book(db=db, book_id=book_id)
+        return review_service.to_reviews_read(db=db, reviews=reviews)
     except BookNotFoundError:
         raise HTTPException(status_code=404, detail="Book not found")
     except Exception as e:

@@ -13,4 +13,5 @@ class ReviewRead(BaseModel):
     username: str | None
     book_id: int
     rating: int
+    anonymous: bool
     review_text: str | None

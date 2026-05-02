@@ -41,6 +41,7 @@ class ReviewService:
             "username": username,
             "book_id": review.book_id,
             "rating": review.rating,
+            "anonymous": review.anonymous,
             "review_text": review.review_text
         }
         return ReviewRead.model_validate(result)

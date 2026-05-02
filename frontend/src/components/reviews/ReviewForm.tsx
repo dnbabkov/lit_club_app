@@ -8,6 +8,9 @@ type ReviewFormProps = {
   initialReviewText?: string | null
   initialAnonymous?: boolean
   onSuccess: () => Promise<void> | void
+  onCancel?: () => void
+  title?: string
+  submitLabel?: string
 }
 
 export function ReviewForm({
@@ -16,6 +19,9 @@ export function ReviewForm({
   initialReviewText = "",
   initialAnonymous = false,
   onSuccess,
+  onCancel,
+  title = "Ваш отзыв",
+  submitLabel = "Сохранить отзыв",
 }: ReviewFormProps) {
   const [rating, setRating] = useState<string>(
     initialRating !== null ? String(initialRating) : ""
@@ -80,7 +86,7 @@ export function ReviewForm({
         marginTop: 16,
       }}
     >
-      <h3 style={{ marginTop: 0 }}>Ваш отзыв</h3>
+      <h3 style={{ marginTop: 0 }}>{title}</h3>
 
       <div style={{ marginBottom: 12 }}>
         <label htmlFor={`review-rating-${bookId}`}>Оценка</label>
@@ -124,9 +130,17 @@ export function ReviewForm({
         <p style={{ color: "crimson", marginBottom: 12 }}>{errorMessage}</p>
       )}
 
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Сохраняем..." : "Сохранить отзыв"}
-      </button>
+      <div style={{ display: "flex", gap: 12 }}>
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Сохраняем..." : submitLabel}
+        </button>
+
+        {onCancel && (
+          <button type="button" onClick={onCancel} disabled={isSubmitting}>
+            Отмена
+          </button>
+        )}
+      </div>
     </form>
   )
 }

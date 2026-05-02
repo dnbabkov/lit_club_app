@@ -27,12 +27,23 @@ export function BookPage() {
   const [reviews, setReviews] = useState<ReviewRead[]>([])
   const [myReview, setMyReview] = useState<ReviewRead | null>(null)
 
+  const [isCreateReviewOpen, setIsCreateReviewOpen] = useState(false)
+  const [isEditReviewOpen, setIsEditReviewOpen] = useState(false)
+
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
 
   const numericBookId = bookId ? Number(bookId) : null
 
   const averageRating = useMemo(() => formatAverageRating(reviews), [reviews])
+
+  const otherReviews = useMemo(() => {
+    if (!myReview) {
+      return reviews
+    }
+
+    return reviews.filter((review) => review.id !== myReview.id)
+  }, [reviews, myReview])
 
   const loadBookPageData = useCallback(async () => {
     if (!numericBookId || Number.isNaN(numericBookId)) {
@@ -63,6 +74,9 @@ export function BookPage() {
       setBook(bookData)
       setReviews(reviewsData)
       setMyReview(myReviewData)
+
+      setIsCreateReviewOpen(false)
+      setIsEditReviewOpen(false)
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message)
@@ -120,17 +134,70 @@ export function BookPage() {
             </div>
           </div>
 
-          <ReviewForm
-            bookId={book.id}
-            initialRating={myReview?.rating ?? null}
-            initialReviewText={myReview?.review_text ?? ""}
-            initialAnonymous={false}
-            onSuccess={loadBookPageData}
-          />
+          <div style={{ marginBottom: 32 }}>
+            <h2>Мой отзыв</h2>
+
+            {!myReview && !isCreateReviewOpen && (
+              <button type="button" onClick={() => setIsCreateReviewOpen(true)}>
+                Оставить отзыв
+              </button>
+            )}
+
+            {!myReview && isCreateReviewOpen && (
+              <ReviewForm
+                bookId={book.id}
+                initialRating={null}
+                initialReviewText=""
+                initialAnonymous={false}
+                onSuccess={loadBookPageData}
+                onCancel={() => setIsCreateReviewOpen(false)}
+                title="Оставить отзыв"
+                submitLabel="Сохранить отзыв"
+              />
+            )}
+
+            {myReview && !isEditReviewOpen && (
+              <div
+                style={{
+                  border: "1px solid #ddd",
+                  borderRadius: 8,
+                  padding: 16,
+                  marginTop: 16,
+                }}
+              >
+                <div style={{ marginBottom: 6, fontWeight: 500 }}>
+                  {myReview.username ?? "Anonymous"} — {myReview.rating}/5
+                </div>
+
+                <div style={{ color: "#444", marginBottom: 12 }}>
+                  {myReview.review_text?.trim()
+                    ? myReview.review_text
+                    : "Без текста"}
+                </div>
+
+                <button type="button" onClick={() => setIsEditReviewOpen(true)}>
+                  Изменить отзыв
+                </button>
+              </div>
+            )}
+
+            {myReview && isEditReviewOpen && (
+              <ReviewForm
+                bookId={book.id}
+                initialRating={myReview.rating}
+                initialReviewText={myReview.review_text ?? ""}
+                initialAnonymous={myReview.anonymous ?? false}
+                onSuccess={loadBookPageData}
+                onCancel={() => setIsEditReviewOpen(false)}
+                title="Изменить отзыв"
+                submitLabel="Сохранить изменения"
+              />
+            )}
+          </div>
 
           <div style={{ marginTop: 32 }}>
             <h2>Отзывы</h2>
-            <ReviewList reviews={reviews} />
+            <ReviewList reviews={otherReviews} />
           </div>
         </>
       )}

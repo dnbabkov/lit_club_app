@@ -23,8 +23,12 @@ def create_review(payload: ReviewCreate, db: Session = Depends(get_db), current_
 def get_review(book_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
         review = review_service.get_book_review_for_user(db=db, book_id=book_id, user_id=current_user.id)
+        if review is None:
+            raise HTTPException(status_code=404, detail="Review not found")
         return review_service.to_review_read(db=db, review=review)
     except BookNotFoundError:
         raise HTTPException(status_code=404, detail="Book not found")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
