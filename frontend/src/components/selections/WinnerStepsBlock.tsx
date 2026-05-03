@@ -1,5 +1,8 @@
-import type { NominationRead, WinnerSelectionStateRead } from "../../types/selections"
-import {formatVotes} from "../../utils/pluralize.ts";
+import type {
+  NominationRead,
+  WinnerSelectionStateRead,
+} from "../../types/selections"
+import { formatVotes } from "../../utils/pluralize.ts"
 
 type WinnerStepsBlockProps = {
   winnerState: WinnerSelectionStateRead | null
@@ -14,6 +17,10 @@ export function WinnerStepsBlock({
     nominations.map((nomination) => [nomination.id, nomination.title])
   )
 
+  const stepsNewestFirst = [...(winnerState?.steps ?? [])].sort(
+    (a, b) => b.round_number - a.round_number
+  )
+
   function getNominationTitle(nominationId: number): string {
     return nominationTitleById.get(nominationId) ?? `Номинация #${nominationId}`
   }
@@ -22,9 +29,9 @@ export function WinnerStepsBlock({
     <>
       <p>Голосование завершено. Идёт определение победителя.</p>
 
-      {winnerState?.steps.length ? (
+      {stepsNewestFirst.length ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {winnerState.steps.map((step) => (
+          {stepsNewestFirst.map((step) => (
             <div
               key={step.step_id}
               style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}
@@ -44,7 +51,9 @@ export function WinnerStepsBlock({
 
               <p>
                 Вылетел кандидат:{" "}
-                <strong>{getNominationTitle(step.eliminated_nomination_id)}</strong>
+                <strong>
+                  {getNominationTitle(step.eliminated_nomination_id)}
+                </strong>
               </p>
             </div>
           ))}
