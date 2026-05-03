@@ -1,24 +1,24 @@
 export type BookSelectionStatus =
-    | "nominations_open"
-    | "voting_open"
-    | "voting_closed"
-    | "winner_selected"
+  | "nominations_open"
+  | "voting_open"
+  | "voting_closed"
+  | "winner_selected"
 
 export type NominationRead = {
-    id: number
-    user_id: number
-    selection_id: number
-    book_id: number
-    title: string
-    author: string
-    comment: string | null
+  id: number
+  user_id: number
+  selection_id: number
+  book_id: number
+  title: string
+  author: string
+  comment: string | null
 }
 
 export type BookSelectionRead = {
-    id: number
-    meeting_id: number
-    status: BookSelectionStatus
-    winning_nomination_id: number | null
+  id: number
+  meeting_id: number
+  status: BookSelectionStatus
+  winning_nomination_id: number | null
 }
 
 export type CurrentSelectionRead = {
@@ -30,8 +30,8 @@ export type CurrentSelectionRead = {
 }
 
 export type VoteCountRead = {
-    nomination_id: number
-    vote_count: number
+  nomination_id: number
+  vote_count: number
 }
 
 export type NominationCreatePayload = {
@@ -40,18 +40,23 @@ export type NominationCreatePayload = {
   comment: string | null
 }
 
+export type NominationBookUpdatePayload = {
+  title: string
+  author: string
+}
+
 export type NominationUpdatePayload = {
-    title: string
-    author: string
-    comment: string | null
+  title: string
+  author: string
+  comment: string | null
 }
 
 export type NominationCommentUpdatePayload = {
-    comment: string | null
+  comment: string | null
 }
 
 export type VoteCreatePayload = {
-    nomination_ids: number[]
+  nomination_ids: number[]
 }
 
 export type CurrentUserVotesRead = {
@@ -59,27 +64,27 @@ export type CurrentUserVotesRead = {
 }
 
 export type WinnerSelectionStateRead = {
-    session_id: number
-    selection_id: number
-    status: "in_progress" | "ready_to_finalize" | "finalized"
-    current_round: number
-    winner_nomination_id: number | null
-    steps: WinnerSelectionStepRead[]
+  session_id: number
+  selection_id: number
+  status: "in_progress" | "ready_to_finalize" | "finalized"
+  current_round: number
+  winner_nomination_id: number | null
+  steps: WinnerSelectionStepRead[]
 }
 
 export type WinnerSelectionStepRead = {
-    step_id: number
-    round_number: number
-    eliminated_nomination_id: number
-    candidates: WinnerSelectionStepCandidateRead[]
+  step_id: number
+  round_number: number
+  eliminated_nomination_id: number
+  candidates: WinnerSelectionStepCandidateRead[]
 }
 
 export type WinnerSelectionStepCandidateRead = {
-    nomination_id: number
-    vote_count: number
-    elimination_weight: number
-    elimination_probability: number
-    was_eliminated: boolean
+  nomination_id: number
+  vote_count: number
+  elimination_weight: number
+  elimination_probability: number
+  was_eliminated: boolean
 }
 
 export type WinnerSelectRead = {

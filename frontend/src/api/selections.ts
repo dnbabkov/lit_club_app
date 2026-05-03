@@ -1,11 +1,12 @@
 import { get, patch, post } from "./http"
 import type {
   BookSelectionRead,
-  CurrentSelectionRead, CurrentUserVotesRead,
+  CurrentSelectionRead,
+  CurrentUserVotesRead,
+  NominationBookUpdatePayload,
   NominationCommentUpdatePayload,
   NominationCreatePayload,
   NominationRead,
-  NominationUpdatePayload,
   VoteCountRead,
   VoteCreatePayload,
   WinnerSelectionStateRead,
@@ -23,23 +24,39 @@ export async function getMyVotesForSelection(
 }
 
 export async function getNominations(
-    selectionId: number
+  selectionId: number
 ): Promise<NominationRead[]> {
-    return get<NominationRead[]>(`/selections/${selectionId}/nominations`)
+  return get<NominationRead[]>(`/selections/${selectionId}/nominations`)
 }
 
 export async function createNomination(
-    selectionId: number,
-    payload: NominationCreatePayload
+  selectionId: number,
+  payload: NominationCreatePayload
 ): Promise<NominationRead> {
-  return post<NominationRead>(`/selections/${selectionId}/nominations`, payload)
+  return post<NominationRead>(
+    `/selections/${selectionId}/nominations`,
+    payload
+  )
 }
 
-export async function replaceMyNomination(
+export async function updateMyNominationBook(
   selectionId: number,
-  payload: NominationUpdatePayload
+  payload: NominationBookUpdatePayload
 ): Promise<NominationRead> {
-  return patch<NominationRead>(`/selections/${selectionId}/nominations/me`, payload)
+  return patch<NominationRead>(
+    `/selections/${selectionId}/nominations/me/book`,
+    payload
+  )
+}
+
+export async function changeMyNominationBook(
+  selectionId: number,
+  payload: NominationBookUpdatePayload
+): Promise<NominationRead> {
+  return patch<NominationRead>(
+    `/selections/${selectionId}/nominations/me/change-book`,
+    payload
+  )
 }
 
 export async function updateMyNominationComment(

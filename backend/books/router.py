@@ -73,3 +73,12 @@ def get_book_reviews(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Book not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+@router.patch("/{book_id}", response_model=BookRead, dependencies=[Depends(get_current_user)])
+def update_book_fields(book_id: int, title: str, author: str,db: Session = Depends(get_db)):
+    try:
+        return book_service.update_book_fields(db=db, title=title, author=author, book_id=book_id)
+    except BookNotFoundError:
+        raise HTTPException(status_code=404, detail="Book not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")

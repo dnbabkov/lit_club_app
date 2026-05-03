@@ -32,6 +32,10 @@ class BookService:
     def get_all_books(self, db: Session) -> Sequence[Book]:
         return self.book_repo.get_all_books(db=db)
 
+    def update_book_fields(self, db: Session, title: str, author: str, book_id: int) -> Book:
+        book = self.book_repo.update_book_fields(db=db, title=title, author=author, book_id=book_id)
+        return book
+
     def add_description_to_book(self, db: Session, book_id: int, description: str) -> Book:
         book = self.book_repo.get_by_id(db=db, book_id=book_id)
         if book is None:

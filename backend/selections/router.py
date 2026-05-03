@@ -13,7 +13,7 @@ from lit_club_app.backend.selections.schemas import (
     VoteCreate,
     VoteCountRead,
     WinnerSelectionStateRead,
-    WinnerSelectRead, NominationCommentUpdate, CurrentSelectionRead, CurrentUserVotesRead,
+    WinnerSelectRead, NominationCommentUpdate, CurrentSelectionRead, CurrentUserVotesRead, NominationBookUpdate
 )
 from lit_club_app.backend.selections.service import selection_service
 from lit_club_app.backend.core.exceptions import (
@@ -107,10 +107,48 @@ def create_nomination(selection_id: int, payload: NominationCreate, db: Session 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
-@router.patch("/{selection_id}/nominations/me", response_model=NominationRead)
-def replace_user_nomination(selection_id: int, payload: NominationUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@router.patch("/{selection_id}/nominations/me/book", response_model=NominationRead)
+def update_user_nomination_book(
+    selection_id: int,
+    payload: NominationBookUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     try:
-        nomination = selection_service.replace_user_nomination(db=db, selection_id=selection_id, user_id=current_user.id, title=payload.title, author=payload.author, comment=payload.comment)
+        nomination = selection_service.update_user_nomination_book(
+            db=db,
+            selection_id=selection_id,
+            user_id=current_user.id,
+            title=payload.title,
+            author=payload.author,
+        )
+        return selection_service.to_nomination_read(db=db, nomination=nomination)
+    except BookSelectionNotFoundError:
+        raise HTTPException(status_code=404, detail="Book selection not found")
+    except NominationNotFoundError:
+        raise HTTPException(status_code=404, detail="Nomination not found")
+    except NominationsNotOpenError:
+        raise HTTPException(status_code=409, detail="Nominations not open")
+    except BookNotFoundError:
+        raise HTTPException(status_code=404, detail="Book not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+@router.patch("/{selection_id}/nominations/me/change-book", response_model=NominationRead)
+def change_user_nomination_book(
+    selection_id: int,
+    payload: NominationBookUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        nomination = selection_service.change_user_nomination_book(
+            db=db,
+            selection_id=selection_id,
+            user_id=current_user.id,
+            title=payload.title,
+            author=payload.author,
+        )
         return selection_service.to_nomination_read(db=db, nomination=nomination)
     except BookSelectionNotFoundError:
         raise HTTPException(status_code=404, detail="Book selection not found")

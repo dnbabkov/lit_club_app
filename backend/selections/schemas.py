@@ -56,6 +56,18 @@ class NominationUpdate(BaseModel):
         value = value.strip()
         return value or None
 
+class NominationBookUpdate(BaseModel):
+    title: str
+    author: str
+
+    @field_validator("title", "author")
+    @classmethod
+    def validate_non_empty_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Field cannot be empty")
+        return value
+
 class NominationCommentUpdate(BaseModel):
     comment: str | None
 

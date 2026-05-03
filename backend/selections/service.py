@@ -138,7 +138,7 @@ class SelectionService:
 
         return self.nomination_repo.create_nomination(db=db, user_id=user_id, book_id=book.id, selection=selection, comment=comment)
 
-    def replace_user_nomination(self, db: Session, selection_id: int, user_id: int, title: str, author: str, comment: str | None):
+    def change_user_nomination_book(self, db: Session, selection_id: int, user_id: int, title: str, author: str, comment: str | None):
         nomination = self.get_editable_user_nomination(db=db, selection_id=selection_id, user_id=user_id)
         book = self.get_or_create_book(db=db, author=author, title=title)
         return self.nomination_repo.update_nomination(db=db, nomination=nomination, book_id=book.id, comment=comment)
@@ -146,6 +146,11 @@ class SelectionService:
     def update_user_nomination_comment(self, db: Session, selection_id: int, user_id: int, comment: str | None):
         nomination = self.get_editable_user_nomination(db=db, selection_id=selection_id, user_id=user_id)
         return self.nomination_repo.update_nomination_comment(db=db, nomination=nomination, comment=comment)
+
+    def update_user_nomination_book(self, db: Session, selection_id: int, user_id: int, title: str, author: str) -> Nomination:
+        nomination = self.get_editable_user_nomination(db=db, selection_id=selection_id, user_id=user_id)
+        self.book_repo.update_book_fields(db=db, book_id=nomination.book_id, title=title, author=author)
+        return nomination
 
     def get_nominations_for_selection(self, db: Session, selection_id: int):
         selection = self.book_select_repo.get_by_id(db=db, selection_id=selection_id)

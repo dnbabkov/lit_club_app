@@ -1,7 +1,8 @@
-import { useState, type SyntheticEvent } from "react"
+import { useEffect, useState, type SyntheticEvent } from "react"
 import { ApiError } from "../../api/http"
 import {
-  replaceMyNomination,
+  changeMyNominationBook,
+  updateMyNominationBook,
   updateMyNominationComment,
 } from "../../api/selections"
 import type { NominationRead } from "../../types/selections"
@@ -12,30 +13,73 @@ type MyNominationEditorProps = {
   onSuccess: () => Promise<void> | void
 }
 
+type EditMode = "edit-book" | "change-book" | "comment" | null
+
 export function MyNominationEditor({
   selectionId,
   nomination,
   onSuccess,
 }: MyNominationEditorProps) {
-  const [isEditingNomination, setIsEditingNomination] = useState(false)
-  const [isEditingComment, setIsEditingComment] = useState(false)
+  const [editMode, setEditMode] = useState<EditMode>(null)
 
-  const [title, setTitle] = useState(nomination.title)
-  const [author, setAuthor] = useState(nomination.author)
-  const [comment, setComment] = useState(nomination.comment ?? "")
+  const [editBookTitle, setEditBookTitle] = useState(nomination.title)
+  const [editBookAuthor, setEditBookAuthor] = useState(nomination.author)
+
+  const [changeBookTitle, setChangeBookTitle] = useState("")
+  const [changeBookAuthor, setChangeBookAuthor] = useState("")
 
   const [commentOnly, setCommentOnly] = useState(nomination.comment ?? "")
 
   const [errorMessage, setErrorMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  async function handleReplaceNomination(event: SyntheticEvent<HTMLFormElement>) {
+  useEffect(() => {
+    setEditBookTitle(nomination.title)
+    setEditBookAuthor(nomination.author)
+    setCommentOnly(nomination.comment ?? "")
+  }, [nomination.title, nomination.author, nomination.comment])
+
+  function openEditBookForm() {
+    setErrorMessage("")
+    setEditBookTitle(nomination.title)
+    setEditBookAuthor(nomination.author)
+    setEditMode("edit-book")
+  }
+
+  function openChangeBookForm() {
+    setErrorMessage("")
+    setChangeBookTitle("")
+    setChangeBookAuthor("")
+    setEditMode("change-book")
+  }
+
+  function openCommentForm() {
+    setErrorMessage("")
+    setCommentOnly(nomination.comment ?? "")
+    setEditMode("comment")
+  }
+
+  function closeForm() {
+    setErrorMessage("")
+    setEditMode(null)
+  }
+
+  function handleUnknownError(error: unknown) {
+    if (error instanceof ApiError) {
+      setErrorMessage(error.message)
+    } else if (error instanceof Error) {
+      setErrorMessage(error.message)
+    } else {
+      setErrorMessage("Unexpected error")
+    }
+  }
+
+  async function handleEditBook(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage("")
 
-    const cleanTitle = title.trim()
-    const cleanAuthor = author.trim()
-    const cleanComment = comment.trim()
+    const cleanTitle = editBookTitle.trim()
+    const cleanAuthor = editBookAuthor.trim()
 
     if (!cleanTitle || !cleanAuthor) {
       setErrorMessage("Укажите название и автора")
@@ -45,22 +89,46 @@ export function MyNominationEditor({
     setIsSubmitting(true)
 
     try {
-      await replaceMyNomination(selectionId, {
+      await updateMyNominationBook(selectionId, {
         title: cleanTitle,
         author: cleanAuthor,
-        comment: cleanComment ? cleanComment : null,
       })
 
-      setIsEditingNomination(false)
+      setEditMode(null)
       await onSuccess()
     } catch (error) {
-      if (error instanceof ApiError) {
-        setErrorMessage(error.message)
-      } else if (error instanceof Error) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage("Unexpected error")
-      }
+      handleUnknownError(error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleChangeBook(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setErrorMessage("")
+
+    const cleanTitle = changeBookTitle.trim()
+    const cleanAuthor = changeBookAuthor.trim()
+
+    if (!cleanTitle || !cleanAuthor) {
+      setErrorMessage("Укажите название и автора")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      await changeMyNominationBook(selectionId, {
+        title: cleanTitle,
+        author: cleanAuthor,
+      })
+
+      setEditMode(null)
+      setChangeBookTitle("")
+      setChangeBookAuthor("")
+      await onSuccess()
+    } catch (error) {
+      handleUnknownError(error)
     } finally {
       setIsSubmitting(false)
     }
@@ -79,16 +147,10 @@ export function MyNominationEditor({
         comment: cleanComment ? cleanComment : null,
       })
 
-      setIsEditingComment(false)
+      setEditMode(null)
       await onSuccess()
     } catch (error) {
-      if (error instanceof ApiError) {
-        setErrorMessage(error.message)
-      } else if (error instanceof Error) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage("Unexpected error")
-      }
+      handleUnknownError(error)
     } finally {
       setIsSubmitting(false)
     }
@@ -105,59 +167,79 @@ export function MyNominationEditor({
     >
       <h2 style={{ marginTop: 0 }}>Моя номинация</h2>
 
-      {!isEditingNomination && !isEditingComment && (
+      {editMode === null && (
         <>
           <p style={{ margin: "4px 0" }}>
             <strong>{nomination.title}</strong> — {nomination.author}
           </p>
 
           <p style={{ margin: "4px 0", color: "#555" }}>
-            {nomination.comment?.trim() ? nomination.comment : "Комментарий не добавлен"}
+            {nomination.comment?.trim()
+              ? nomination.comment
+              : "Комментарий не добавлен"}
           </p>
 
-          <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-            <button type="button" onClick={() => setIsEditingNomination(true)}>
-              Изменить номинацию
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 12,
+              marginTop: 12,
+            }}
+          >
+            <button type="button" onClick={openEditBookForm}>
+              Отредактировать номинацию
             </button>
 
-            <button type="button" onClick={() => setIsEditingComment(true)}>
+            <button type="button" onClick={openChangeBookForm}>
+              Изменить книгу
+            </button>
+
+            <button type="button" onClick={openCommentForm}>
               Изменить комментарий
             </button>
           </div>
         </>
       )}
 
-      {isEditingNomination && (
-        <form onSubmit={handleReplaceNomination}>
+      {editMode === "edit-book" && (
+        <form onSubmit={handleEditBook}>
+          <h3 style={{ marginTop: 0 }}>Отредактировать номинацию</h3>
+
+          <p style={{ color: "#555" }}>
+            Эта форма изменит название и автора уже связанной с номинацией
+            книги.
+          </p>
+
           <div style={{ marginBottom: 12 }}>
-            <label htmlFor="edit-nomination-title">Название</label>
+            <label htmlFor="edit-book-title">Название</label>
             <input
-              id="edit-nomination-title"
+              id="edit-book-title"
               type="text"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
+              value={editBookTitle}
+              onChange={(event) => setEditBookTitle(event.target.value)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: 8,
+                marginTop: 4,
+              }}
             />
           </div>
 
           <div style={{ marginBottom: 12 }}>
-            <label htmlFor="edit-nomination-author">Автор</label>
+            <label htmlFor="edit-book-author">Автор</label>
             <input
-              id="edit-nomination-author"
+              id="edit-book-author"
               type="text"
-              value={author}
-              onChange={(event) => setAuthor(event.target.value)}
-              style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
-            />
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <label htmlFor="edit-nomination-comment">Комментарий</label>
-            <textarea
-              id="edit-nomination-comment"
-              value={comment}
-              onChange={(event) => setComment(event.target.value)}
-              style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
+              value={editBookAuthor}
+              onChange={(event) => setEditBookAuthor(event.target.value)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: 8,
+                marginTop: 4,
+              }}
             />
           </div>
 
@@ -168,31 +250,100 @@ export function MyNominationEditor({
           <div style={{ display: "flex", gap: 12 }}>
             <button
               type="submit"
-              disabled={isSubmitting || !title.trim() || !author.trim()}
+              disabled={
+                isSubmitting || !editBookTitle.trim() || !editBookAuthor.trim()
+              }
             >
               {isSubmitting ? "Сохраняем..." : "Сохранить"}
             </button>
 
-            <button
-              type="button"
-              onClick={() => setIsEditingNomination(false)}
-              disabled={isSubmitting}
-            >
+            <button type="button" onClick={closeForm} disabled={isSubmitting}>
               Отмена
             </button>
           </div>
         </form>
       )}
 
-      {isEditingComment && (
+      {editMode === "change-book" && (
+        <form onSubmit={handleChangeBook}>
+          <h3 style={{ marginTop: 0 }}>Изменить книгу</h3>
+
+          <p style={{ color: "#555" }}>
+            Эта форма прикрепит к номинации другую книгу. Если такая книга уже
+            есть в базе, будет выбрана она. Если её нет, она будет создана.
+          </p>
+
+          <div style={{ marginBottom: 12 }}>
+            <label htmlFor="change-book-title">Название другой книги</label>
+            <input
+              id="change-book-title"
+              type="text"
+              value={changeBookTitle}
+              onChange={(event) => setChangeBookTitle(event.target.value)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: 8,
+                marginTop: 4,
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <label htmlFor="change-book-author">Автор другой книги</label>
+            <input
+              id="change-book-author"
+              type="text"
+              value={changeBookAuthor}
+              onChange={(event) => setChangeBookAuthor(event.target.value)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: 8,
+                marginTop: 4,
+              }}
+            />
+          </div>
+
+          {errorMessage && (
+            <p style={{ color: "crimson", marginBottom: 12 }}>{errorMessage}</p>
+          )}
+
+          <div style={{ display: "flex", gap: 12 }}>
+            <button
+              type="submit"
+              disabled={
+                isSubmitting ||
+                !changeBookTitle.trim() ||
+                !changeBookAuthor.trim()
+              }
+            >
+              {isSubmitting ? "Сохраняем..." : "Прикрепить другую книгу"}
+            </button>
+
+            <button type="button" onClick={closeForm} disabled={isSubmitting}>
+              Отмена
+            </button>
+          </div>
+        </form>
+      )}
+
+      {editMode === "comment" && (
         <form onSubmit={handleUpdateComment}>
+          <h3 style={{ marginTop: 0 }}>Изменить комментарий</h3>
+
           <div style={{ marginBottom: 12 }}>
             <label htmlFor="edit-comment-only">Комментарий</label>
             <textarea
               id="edit-comment-only"
               value={commentOnly}
               onChange={(event) => setCommentOnly(event.target.value)}
-              style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: 8,
+                marginTop: 4,
+              }}
             />
           </div>
 
@@ -205,11 +356,7 @@ export function MyNominationEditor({
               {isSubmitting ? "Сохраняем..." : "Сохранить комментарий"}
             </button>
 
-            <button
-              type="button"
-              onClick={() => setIsEditingComment(false)}
-              disabled={isSubmitting}
-            >
+            <button type="button" onClick={closeForm} disabled={isSubmitting}>
               Отмена
             </button>
           </div>

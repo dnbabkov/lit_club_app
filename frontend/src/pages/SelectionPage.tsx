@@ -21,7 +21,7 @@ import type {
   VoteCountRead,
   WinnerSelectionStateRead,
 } from "../types/selections"
-import { MyNominationEditor } from "../components/selections/MyNominationEditor.tsx";
+import { MyNominationEditor } from "../components/selections/MyNominationEditor"
 import { NominationsList } from "../components/selections/NominationsList"
 import { NominationForm } from "../components/selections/NominationForm"
 import { SelectionStatusBlock } from "../components/selections/SelectionStatusBlock"
@@ -32,11 +32,13 @@ import { WinnerStepsBlock } from "../components/selections/WinnerStepsBlock"
 export function SelectionPage() {
   const { user } = useAuth()
 
-  const [currentSelection, setCurrentSelection] = useState<CurrentSelectionRead | null>(null)
+  const [currentSelection, setCurrentSelection] =
+    useState<CurrentSelectionRead | null>(null)
   const [nominations, setNominations] = useState<NominationRead[]>([])
   const [voteCounts, setVoteCounts] = useState<VoteCountRead[]>([])
   const [myVoteIds, setMyVoteIds] = useState<number[]>([])
-  const [winnerState, setWinnerState] = useState<WinnerSelectionStateRead | null>(null)
+  const [winnerState, setWinnerState] =
+    useState<WinnerSelectionStateRead | null>(null)
 
   const [selectedNominationIds, setSelectedNominationIds] = useState<number[]>([])
   const [isEditingVote, setIsEditingVote] = useState(false)
@@ -104,7 +106,9 @@ export function SelectionPage() {
           current.selection_status === "winner_selected") &&
         current.winner_selection_session_id !== null
       ) {
-        const state = await getWinnerSelectionState(current.winner_selection_session_id)
+        const state = await getWinnerSelectionState(
+          current.winner_selection_session_id
+        )
         setWinnerState(state)
       } else {
         setWinnerState(null)
@@ -126,13 +130,17 @@ export function SelectionPage() {
     }
   }, [])
 
+  const isVotingFormOpen =
+    currentSelection?.selection_status === "voting_open" &&
+    (!myVoteIds.length || isEditingVote)
+
   useEffect(() => {
     void loadSelectionData()
   }, [loadSelectionData])
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
-      if (!isSubmitting) {
+      if (!isSubmitting && !isVotingFormOpen) {
         void loadSelectionData(true)
       }
     }, 3000)
@@ -140,7 +148,7 @@ export function SelectionPage() {
     return () => {
       window.clearInterval(intervalId)
     }
-  }, [loadSelectionData, isSubmitting])
+  }, [loadSelectionData, isSubmitting, isVotingFormOpen])
 
   async function handleVoteSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -376,7 +384,10 @@ export function SelectionPage() {
       )
     }
 
-    if (selectionStatus === "voting_closed" || selectionStatus === "winner_selected") {
+    if (
+      selectionStatus === "voting_closed" ||
+      selectionStatus === "winner_selected"
+    ) {
       return (
         <>
           {!hasWinnerSession ? (
@@ -399,7 +410,10 @@ export function SelectionPage() {
             </>
           ) : (
             <>
-              <WinnerStepsBlock winnerState={winnerState} nominations={nominations} />
+              <WinnerStepsBlock
+                winnerState={winnerState}
+                nominations={nominations}
+              />
 
               {isModerator && (
                 <SelectionModeratorActions

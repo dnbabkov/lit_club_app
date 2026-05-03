@@ -44,6 +44,25 @@ class BookRepository:
             db.rollback()
             raise
 
+    def update_book_fields(self, db: Session, title: str, author: str, book_id: int) -> Book:
+        book = self.get_by_id(db=db, book_id=book_id)
+        if book is None:
+            raise BookNotFoundError()
+        try:
+            clean_title = title.strip()
+            clean_author = author.strip()
+            book.title = clean_title
+            book.author = clean_author
+            book.normalized_title = clean_title.lower()
+            book.normalized_author = clean_author.lower()
+            db.commit()
+            db.refresh(book)
+            return book
+        except Exception:
+            db.rollback()
+            raise
+
+
     def get_all_books(self, db: Session) -> Sequence[Book]:
         statement = (select(Book))
         result = db.execute(statement)
