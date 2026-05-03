@@ -1,0 +1,15 @@
+# Runtime
+fastapi
+uvicorn[standard]
+SQLAlchemy
+alembic
+psycopg[binary]
+pydantic
+pydantic-settings
+PyJWT
+pwdlib[argon2]
+python-dotenv
+
+# Tests
+pytest
+httpx
