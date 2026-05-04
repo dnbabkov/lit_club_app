@@ -61,7 +61,7 @@ def create_book(payload: BookCreate, db: Session = Depends(get_db), user: User =
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
-@router.get("/{book_id}", response_model=CanDeleteBookRead, dependencies=[Depends(get_current_user)])
+@router.get("/{book_id}", response_model=BookRead, dependencies=[Depends(get_current_user)])
 def get_book(book_id: int, db: Session = Depends(get_db)):
     try:
         book = book_service.get_book(db=db, book_id=book_id)
