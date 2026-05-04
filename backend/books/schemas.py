@@ -18,6 +18,11 @@ class BookRead(BaseModel):
     title: str
     author: str
     description: str | None
+    user_id: int | None
+
+class CanDeleteBookRead(BaseModel):
+    book: BookRead
+    can_delete: bool
 
 class BookWithReviewsRead(BaseModel):
     book: BookRead
@@ -25,4 +30,7 @@ class BookWithReviewsRead(BaseModel):
 
 class BooksRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    books: list[BookRead]
+    books: list[CanDeleteBookRead]
+
+class BookAssignUser(BaseModel):
+    user_id: int

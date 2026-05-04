@@ -154,4 +154,7 @@ class UserService:
             nominated_books=nominated_books,
         )
 
+    def get_all_users(self, db: Session):
+        return self.repo.get_all_users(db=db)
+
 user_service = UserService()

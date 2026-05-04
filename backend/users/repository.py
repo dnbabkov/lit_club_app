@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, Sequence
 from sqlalchemy.orm import Session
 
 from lit_club_app.backend.users.models import User
@@ -32,3 +32,8 @@ class UserRepository:
         except Exception:
             db.rollback()
             raise
+
+    def get_all_users(self, db: Session) -> Sequence[User]:
+        statement = select(User)
+        result = db.execute(statement)
+        return result.scalars().all()

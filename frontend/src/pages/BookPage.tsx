@@ -3,11 +3,15 @@ import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { Layout } from "../components/Layout"
 import { ApiError } from "../api/http"
 import { getBook } from "../api/books"
+import { getCurrentUser } from "../api/auth"
 import { getMyReviewForBook, getReviewsForBook } from "../api/reviews"
 import { ReviewList } from "../components/reviews/ReviewList"
 import { ReviewForm } from "../components/reviews/ReviewForm"
+import { BookEditor } from "../components/books/BookEditor"
+import { BookAssignUserForm } from "../components/books/BookAssignUserForm"
 import type { BookRead } from "../types/books"
 import type { ReviewRead } from "../types/reviews"
+import type { UserRead } from "../api/auth"
 
 function formatAverageRating(reviews: ReviewRead[]): string {
   if (reviews.length === 0) {
@@ -30,9 +34,12 @@ export function BookPage() {
   const [book, setBook] = useState<BookRead | null>(null)
   const [reviews, setReviews] = useState<ReviewRead[]>([])
   const [myReview, setMyReview] = useState<ReviewRead | null>(null)
+  const [currentUser, setCurrentUser] = useState<UserRead | null>(null)
 
   const [isCreateReviewOpen, setIsCreateReviewOpen] = useState(false)
   const [isEditReviewOpen, setIsEditReviewOpen] = useState(false)
+  const [isBookEditorOpen, setIsBookEditorOpen] = useState(false)
+  const [isAssignUserFormOpen, setIsAssignUserFormOpen] = useState(false)
 
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
@@ -49,6 +56,16 @@ export function BookPage() {
     return reviews.filter((review) => review.id !== myReview.id)
   }, [reviews, myReview])
 
+  const isAdmin = currentUser?.role === "admin"
+
+  const canEditBook = Boolean(
+    book &&
+      currentUser &&
+      (book.user_id === null || isAdmin || book.user_id === currentUser.id)
+  )
+
+  const canAssignUserToBook = Boolean(book && isAdmin && book.user_id === null)
+
   const loadBookPageData = useCallback(async () => {
     if (!numericBookId || Number.isNaN(numericBookId)) {
       setErrorMessage("Некорректный id книги")
@@ -60,8 +77,11 @@ export function BookPage() {
     setErrorMessage("")
 
     try {
-      const bookData = await getBook(numericBookId)
-      const reviewsData = await getReviewsForBook(numericBookId)
+      const [bookData, reviewsData, userData] = await Promise.all([
+        getBook(numericBookId),
+        getReviewsForBook(numericBookId),
+        getCurrentUser(),
+      ])
 
       let myReviewData: ReviewRead | null = null
 
@@ -78,9 +98,12 @@ export function BookPage() {
       setBook(bookData)
       setReviews(reviewsData)
       setMyReview(myReviewData)
+      setCurrentUser(userData)
 
       setIsCreateReviewOpen(false)
       setIsEditReviewOpen(false)
+      setIsBookEditorOpen(false)
+      setIsAssignUserFormOpen(false)
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message)
@@ -97,6 +120,16 @@ export function BookPage() {
   useEffect(() => {
     loadBookPageData()
   }, [loadBookPageData])
+
+  function handleOpenBookEditor() {
+    setIsBookEditorOpen((prev) => !prev)
+    setIsAssignUserFormOpen(false)
+  }
+
+  function handleOpenAssignUserForm() {
+    setIsAssignUserFormOpen((prev) => !prev)
+    setIsBookEditorOpen(false)
+  }
 
   return (
     <Layout>
@@ -134,6 +167,11 @@ export function BookPage() {
               <strong>Автор:</strong> {book.author}
             </p>
 
+            <p style={{ margin: "4px 0", color: "#555" }}>
+              <strong>Владелец:</strong>{" "}
+              {book.user_id === null ? "не назначен" : `ID ${book.user_id}`}
+            </p>
+
             <p style={{ margin: "4px 0" }}>
               <strong>Средняя оценка:</strong> {averageRating}
             </p>
@@ -146,7 +184,41 @@ export function BookPage() {
                   : "Описание пока не добавлено"}
               </div>
             </div>
+
+            {(canEditBook || canAssignUserToBook) && (
+              <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+                {canEditBook && (
+                  <button type="button" onClick={handleOpenBookEditor}>
+                    {isBookEditorOpen ? "Скрыть редактор" : "Редактировать книгу"}
+                  </button>
+                )}
+
+                {canAssignUserToBook && (
+                  <button type="button" onClick={handleOpenAssignUserForm}>
+                    {isAssignUserFormOpen
+                      ? "Скрыть назначение пользователя"
+                      : "Назначить пользователя"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
+
+          {isBookEditorOpen && canEditBook && (
+            <BookEditor
+              book={book}
+              onCancel={() => setIsBookEditorOpen(false)}
+              onSuccess={loadBookPageData}
+            />
+          )}
+
+          {isAssignUserFormOpen && canAssignUserToBook && (
+            <BookAssignUserForm
+              book={book}
+              onCancel={() => setIsAssignUserFormOpen(false)}
+              onSuccess={loadBookPageData}
+            />
+          )}
 
           <div style={{ marginBottom: 32 }}>
             <h2>Мой отзыв</h2>

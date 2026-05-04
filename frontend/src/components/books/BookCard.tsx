@@ -3,11 +3,27 @@ import type { BookRead } from "../../types/books"
 
 type BookCardProps = {
   book: BookRead
-  onEditDescription?: (bookId: number) => void
+  canEdit?: boolean
+  canAssignUser?: boolean
+  canDelete?: boolean
+  isDeleting?: boolean
+  onEditBook?: (bookId: number) => void
+  onAssignUser?: (bookId: number) => void
+  onDeleteBook?: (bookId: number) => void
   from?: "/books" | "/books/finished"
 }
 
-export function BookCard({ book, onEditDescription, from = "/books" }: BookCardProps) {
+export function BookCard({
+  book,
+  canEdit = false,
+  canAssignUser = false,
+  canDelete = false,
+  isDeleting = false,
+  onEditBook,
+  onAssignUser,
+  onDeleteBook,
+  from = "/books",
+}: BookCardProps) {
   const navigate = useNavigate()
 
   function handleOpenBookPage() {
@@ -23,11 +39,27 @@ export function BookCard({ book, onEditDescription, from = "/books" }: BookCardP
     }
   }
 
-  function handleEditDescriptionClick(event: React.MouseEvent<HTMLButtonElement>) {
+  function handleEditBookClick(event: React.MouseEvent<HTMLButtonElement>) {
     event.stopPropagation()
 
-    if (onEditDescription) {
-      onEditDescription(book.id)
+    if (onEditBook) {
+      onEditBook(book.id)
+    }
+  }
+
+  function handleAssignUserClick(event: React.MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation()
+
+    if (onAssignUser) {
+      onAssignUser(book.id)
+    }
+  }
+
+  function handleDeleteBookClick(event: React.MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation()
+
+    if (onDeleteBook) {
+      onDeleteBook(book.id)
     }
   }
 
@@ -60,11 +92,30 @@ export function BookCard({ book, onEditDescription, from = "/books" }: BookCardP
         </div>
       </div>
 
-      {onEditDescription && (
-        <div style={{ marginTop: 16 }}>
-          <button type="button" onClick={handleEditDescriptionClick}>
-            Изменить описание
-          </button>
+      {(canEdit || canAssignUser || canDelete) && (
+        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+          {canEdit && onEditBook && (
+            <button type="button" onClick={handleEditBookClick}>
+              Редактировать книгу
+            </button>
+          )}
+
+          {canAssignUser && onAssignUser && (
+            <button type="button" onClick={handleAssignUserClick}>
+              Назначить пользователя
+            </button>
+          )}
+
+          {canDelete && onDeleteBook && (
+            <button
+              type="button"
+              onClick={handleDeleteBookClick}
+              disabled={isDeleting}
+              style={{ color: "crimson" }}
+            >
+              {isDeleting ? "Удаляем..." : "Удалить книгу"}
+            </button>
+          )}
         </div>
       )}
     </div>

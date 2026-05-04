@@ -17,6 +17,6 @@ export type UserProfileRead = {
   id: number
   username: string
   telegram_login: string
-  role: "member" | "moderator"
+  role: "member" | "moderator" | "admin"
   nominated_books: UserProfileBookRead[]
 }

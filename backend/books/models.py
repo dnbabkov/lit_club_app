@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, UniqueConstraint
+from sqlalchemy import Column, Integer, String, UniqueConstraint, ForeignKey
 from lit_club_app.backend.db.base import Base
 
 class Book(Base):
@@ -10,6 +10,7 @@ class Book(Base):
     description = Column(String, nullable=True)
     normalized_title = Column(String, nullable=False)
     normalized_author = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
         UniqueConstraint('normalized_title', 'normalized_author', name='_title_author_uc'),

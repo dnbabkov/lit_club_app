@@ -9,6 +9,7 @@ import {BookPage} from "../pages/BookPage.tsx"
 import {FinishedBooksPage} from "../pages/FinishedBooksPage.tsx";
 import {ProfilePage} from "../pages/ProfilePage.tsx";
 import {ProtectedRoute} from "../components/ProtectedRoute.tsx";
+import {UsersPage} from "../pages/UsersPage.tsx";
 
 export const router = createBrowserRouter([
   {
@@ -68,11 +69,19 @@ export const router = createBrowserRouter([
     ),
   },
   {
-  path: "/books/:bookId",
-  element: (
-    <ProtectedRoute>
-      <BookPage />
-    </ProtectedRoute>
-  ),
-}
+    path: "/books/:bookId",
+    element: (
+      <ProtectedRoute>
+        <BookPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/users",
+    element: (
+        <ProtectedRoute>
+          <UsersPage/>
+        </ProtectedRoute>
+    )
+  }
 ])

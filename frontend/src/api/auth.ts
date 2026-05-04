@@ -20,7 +20,7 @@ export type UserRead = {
   id: number
   username: string
   telegram_login: string
-  role: "member" | "moderator"
+  role: "member" | "moderator" | "admin"
 }
 
 export async function registerUser(
@@ -37,4 +37,8 @@ export async function loginUser(
 
 export async function getCurrentUser(): Promise<UserRead> {
   return get<UserRead>("/users/me")
+}
+
+export async function getUsers(): Promise<UserRead[]> {
+  return get<UserRead[]>("/users/")
 }

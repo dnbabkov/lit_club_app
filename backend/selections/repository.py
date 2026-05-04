@@ -1,6 +1,6 @@
 from typing import Sequence
 
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, distinct
 from sqlalchemy.orm import Session
 
 from lit_club_app.backend.selections.models import BookSelection, Nomination, Vote, WinnerSelectionSession, WinnerSelectionStep, \
@@ -143,6 +143,11 @@ class NominationRepository:
         except Exception:
             db.rollback()
             raise
+
+    def get_all_nominated_books(self, db: Session) -> Sequence[int]:
+        statement = select(distinct(Nomination.book_id))
+        results = db.execute(statement)
+        return results.scalars().all()
 
 class VoteRepository:
     def create_vote(self, db: Session, user_id: int, nomination_id: int) -> Vote:

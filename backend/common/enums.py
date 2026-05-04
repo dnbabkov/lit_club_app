@@ -3,6 +3,7 @@ import enum
 class Roles(enum.Enum):
     MEMBER = "member"
     MODERATOR = "moderator"
+    ADMIN = "admin"
 
 class MeetingStatus(enum.Enum):
     BOOK_SELECTION = "book_selection"

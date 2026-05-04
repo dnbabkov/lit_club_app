@@ -144,3 +144,12 @@ class EmptyDescriptionError(BookError):
 
 class BookAlreadyExistsError(BookError):
     pass
+
+class NotYourBookError(BookError):
+    pass
+
+class AlreadyAssignedError(BookError):
+    pass
+
+class CantDeleteNominatedBookError(BookError):
+    pass

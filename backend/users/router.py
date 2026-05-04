@@ -50,3 +50,10 @@ def get_user_profile(db: Session = Depends(get_db), current_user: User = Depends
         raise HTTPException(status_code=404, detail="User not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+@router.get("/", response_model=list[UserRead], status_code=200, dependencies=[Depends(get_current_user)])
+def get_all_users(db: Session = Depends(get_db)):
+    try:
+        return user_service.get_all_users(db=db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
