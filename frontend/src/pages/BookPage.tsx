@@ -167,11 +167,6 @@ export function BookPage() {
               <strong>Автор:</strong> {book.author}
             </p>
 
-            <p style={{ margin: "4px 0", color: "#555" }}>
-              <strong>Владелец:</strong>{" "}
-              {book.user_id === null ? "не назначен" : `ID ${book.user_id}`}
-            </p>
-
             <p style={{ margin: "4px 0" }}>
               <strong>Средняя оценка:</strong> {averageRating}
             </p>
