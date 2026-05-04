@@ -7,6 +7,7 @@ import { getBooks } from "../api/books"
 import { finishMeeting, getMeetings, startNextMeeting } from "../api/meetings"
 import { MeetingCard } from "../components/meetings/MeetingCard"
 import { ScheduleMeetingForm } from "../components/meetings/ScheduleMeetingForm"
+import type { BookRead } from "../types/books"
 import type { MeetingWithBook } from "../types/meetings"
 
 export function MeetingsPage() {
@@ -29,13 +30,16 @@ export function MeetingsPage() {
       const meetings = await getMeetings()
       const booksResponse = await getBooks()
 
-      const booksById = new Map(
-        booksResponse.books.map((book) => [book.id, book])
+      const booksById = new Map<number, BookRead>(
+        booksResponse.books.map((item) => [item.book.id, item.book])
       )
 
       const combined: MeetingWithBook[] = meetings.map((meeting) => ({
         meeting,
-        book: meeting.book_id !== null ? booksById.get(meeting.book_id) ?? null : null,
+        book:
+          meeting.book_id !== null
+            ? booksById.get(meeting.book_id) ?? null
+            : null,
       }))
 
       setMeetingsWithBooks(combined)
@@ -101,10 +105,12 @@ export function MeetingsPage() {
     setSchedulingMeetingId((prev) => (prev === meetingId ? null : meetingId))
   }
 
-  const latestMeeting = meetingsWithBooks.length > 0 ? meetingsWithBooks[0].meeting : null
+  const latestMeeting =
+    meetingsWithBooks.length > 0 ? meetingsWithBooks[0].meeting : null
 
   const canStartNextCycle =
-    isModerator && (latestMeeting === null || latestMeeting.status !== "book_selection")
+    isModerator &&
+    (latestMeeting === null || latestMeeting.status !== "book_selection")
 
   return (
     <Layout>
@@ -112,7 +118,7 @@ export function MeetingsPage() {
 
       {canStartNextCycle && (
         <div style={{ marginBottom: 24 }}>
-          <button onClick={handleStartNext} disabled={isSubmitting}>
+          <button type="button" onClick={handleStartNext} disabled={isSubmitting}>
             {isSubmitting ? "Создаём..." : "Начать следующий цикл"}
           </button>
         </div>
