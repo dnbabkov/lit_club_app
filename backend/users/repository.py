@@ -32,8 +32,16 @@ class UserRepository:
         except Exception:
             db.rollback()
             raise
-
     def get_all_users(self, db: Session) -> Sequence[User]:
         statement = select(User)
         result = db.execute(statement)
         return result.scalars().all()
+    def update_user_password(self, db: Session, user: User, password_hash: str) -> User:
+        try:
+            user.password_hash = password_hash
+            db.commit()
+            db.refresh(user)
+            return user
+        except Exception:
+            db.rollback()
+            raise

@@ -4,13 +4,14 @@ from sqlalchemy.orm import Session
 from lit_club_app.backend.api.dependencies import get_db, get_current_user
 from lit_club_app.backend.core.security import create_access_token
 from lit_club_app.backend.users.models import User
-from lit_club_app.backend.users.schemas import UserRegister, UserLogin, UserRead, TokenResponse, UserProfileRead
+from lit_club_app.backend.users.schemas import UserRegister, UserLogin, UserRead, TokenResponse, UserProfileRead, \
+    UpdatePassword
 from lit_club_app.backend.users.service import user_service
 from lit_club_app.backend.core.exceptions import (
     UsernameAlreadyExistsError,
     TelegramLoginAlreadyExistsError,
     UserNotFoundError,
-    InvalidPasswordError, EmptyTelegramLoginError,
+    InvalidPasswordError, EmptyTelegramLoginError, SamePasswordError,
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -55,5 +56,16 @@ def get_user_profile(db: Session = Depends(get_db), current_user: User = Depends
 def get_all_users(db: Session = Depends(get_db)):
     try:
         return user_service.get_all_users(db=db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+@router.patch("/me/profile/password", response_model=UserRead, status_code=200)
+def update_user_password(payload: UpdatePassword, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    try:
+        return user_service.update_user_password(db=db, user=user, current_password=payload.current_password, new_password=payload.new_password)
+    except InvalidPasswordError:
+        raise HTTPException(status_code=401, detail="Incorrect password")
+    except SamePasswordError:
+        raise HTTPException(status_code=409, detail="New password can't be the same as the old password")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")

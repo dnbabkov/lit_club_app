@@ -20,3 +20,8 @@ export type UserProfileRead = {
   role: "member" | "moderator" | "admin"
   nominated_books: UserProfileBookRead[]
 }
+
+export type UpdatePassword = {
+  current_password: string
+  new_password: string
+}

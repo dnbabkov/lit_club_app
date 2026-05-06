@@ -41,3 +41,7 @@ class UserProfileRead(BaseModel):
     telegram_login: str
     role: Roles
     nominated_books: list[UserProfileBookRead]
+
+class UpdatePassword(BaseModel):
+    current_password: str = Field(min_length=4, max_length=50)
+    new_password: str = Field(min_length=4, max_length=50)
