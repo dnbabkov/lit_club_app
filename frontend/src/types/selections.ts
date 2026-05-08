@@ -4,6 +4,8 @@ export type BookSelectionStatus =
   | "voting_closed"
   | "winner_selected"
 
+export type NominationBookSource = "existing_book" | "new_book"
+
 export type NominationRead = {
   id: number
   user_id: number
@@ -12,6 +14,7 @@ export type NominationRead = {
   title: string
   author: string
   comment: string | null
+  book_source: NominationBookSource
 }
 
 export type BookSelectionRead = {
@@ -34,21 +37,29 @@ export type VoteCountRead = {
   vote_count: number
 }
 
-export type NominationCreatePayload = {
+export type NominationExistingBookCreatePayload = {
+  book_id: number
+  comment: string | null
+}
+
+export type NominationNewBookCreatePayload = {
   title: string
   author: string
   comment: string | null
+}
+
+export type NominationExistingBookChangePayload = {
+  book_id: number
+}
+
+export type NominationNewBookChangePayload = {
+  title: string
+  author: string
 }
 
 export type NominationBookUpdatePayload = {
   title: string
   author: string
-}
-
-export type NominationUpdatePayload = {
-  title: string
-  author: string
-  comment: string | null
 }
 
 export type NominationCommentUpdatePayload = {

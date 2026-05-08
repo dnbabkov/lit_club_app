@@ -25,3 +25,7 @@ class UploadedFileTypes(enum.Enum):
     BOOK_COVER = "book_cover"
     BOOK_FILE = "book_file"
     ACHIEVEMENT_IMAGE = "achievement_image"
+
+class NominationBookSource(enum.Enum):
+    EXISTING_BOOK = "existing_book"
+    NEW_BOOK = "new_book"

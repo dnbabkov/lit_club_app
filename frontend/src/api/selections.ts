@@ -5,7 +5,10 @@ import type {
   CurrentUserVotesRead,
   NominationBookUpdatePayload,
   NominationCommentUpdatePayload,
-  NominationCreatePayload,
+  NominationExistingBookChangePayload,
+  NominationExistingBookCreatePayload,
+  NominationNewBookChangePayload,
+  NominationNewBookCreatePayload,
   NominationRead,
   VoteCountRead,
   VoteCreatePayload,
@@ -29,12 +32,42 @@ export async function getNominations(
   return get<NominationRead[]>(`/selections/${selectionId}/nominations`)
 }
 
-export async function createNomination(
+export async function createNominationFromExistingBook(
   selectionId: number,
-  payload: NominationCreatePayload
+  payload: NominationExistingBookCreatePayload
 ): Promise<NominationRead> {
   return post<NominationRead>(
-    `/selections/${selectionId}/nominations`,
+    `/selections/${selectionId}/nominations/from-existing`,
+    payload
+  )
+}
+
+export async function createNominationFromNewBook(
+  selectionId: number,
+  payload: NominationNewBookCreatePayload
+): Promise<NominationRead> {
+  return post<NominationRead>(
+    `/selections/${selectionId}/nominations/new`,
+    payload
+  )
+}
+
+export async function changeMyNominationToExistingBook(
+  selectionId: number,
+  payload: NominationExistingBookChangePayload
+): Promise<NominationRead> {
+  return patch<NominationRead>(
+    `/selections/${selectionId}/nominations/me/change-book/from-existing`,
+    payload
+  )
+}
+
+export async function changeMyNominationToNewBook(
+  selectionId: number,
+  payload: NominationNewBookChangePayload
+): Promise<NominationRead> {
+  return patch<NominationRead>(
+    `/selections/${selectionId}/nominations/me/change-book/new`,
     payload
   )
 }
@@ -44,17 +77,7 @@ export async function updateMyNominationBook(
   payload: NominationBookUpdatePayload
 ): Promise<NominationRead> {
   return patch<NominationRead>(
-    `/selections/${selectionId}/nominations/me/book`,
-    payload
-  )
-}
-
-export async function changeMyNominationBook(
-  selectionId: number,
-  payload: NominationBookUpdatePayload
-): Promise<NominationRead> {
-  return patch<NominationRead>(
-    `/selections/${selectionId}/nominations/me/change-book`,
+    `/selections/${selectionId}/nominations/me/edit-new-book`,
     payload
   )
 }

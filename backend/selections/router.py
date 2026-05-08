@@ -7,13 +7,18 @@ from lit_club_app.backend.common.enums import Roles
 from lit_club_app.backend.selections.schemas import (
     BookSelectionCreate,
     BookSelectionRead,
-    NominationCreate,
-    NominationUpdate,
+    NominationExistingBookCreate,
+    NominationNewBookCreate,
+    NominationExistingBookChange,
+    NominationNewBookChange,
     NominationRead,
     VoteCreate,
     VoteCountRead,
     WinnerSelectionStateRead,
-    WinnerSelectRead, NominationCommentUpdate, CurrentSelectionRead, CurrentUserVotesRead, NominationBookUpdate
+    WinnerSelectRead,
+    NominationCommentUpdate,
+    CurrentSelectionRead,
+    CurrentUserVotesRead, NominationBookUpdate,
 )
 from lit_club_app.backend.selections.service import selection_service
 from lit_club_app.backend.core.exceptions import (
@@ -92,11 +97,41 @@ def close_voting(selection_id: int, db: Session = Depends(get_db), current_user:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
-
-@router.post("/{selection_id}/nominations", response_model=NominationRead, status_code=201)
-def create_nomination(selection_id: int, payload: NominationCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@router.post("/{selection_id}/nominations/from-existing", response_model=NominationRead, status_code=201)
+def create_nomination_from_existing_book(selection_id: int, payload: NominationExistingBookCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
-        nomination = selection_service.create_nomination(db=db, selection_id=selection_id, user_id=current_user.id, title=payload.title, author=payload.author, comment = payload.comment)
+        nomination = selection_service.create_nomination_from_existing_book(
+            db=db,
+            selection_id=selection_id,
+            user_id=current_user.id,
+            book_id=payload.book_id,
+            comment=payload.comment,
+        )
+        return selection_service.to_nomination_read(db=db, nomination=nomination)
+    except BookSelectionNotFoundError:
+        raise HTTPException(status_code=404, detail="Book selection not found")
+    except BookNotFoundError:
+        raise HTTPException(status_code=404, detail="Book not found")
+    except NominationsNotOpenError:
+        raise HTTPException(status_code=409, detail="Nominations not open")
+    except UserAlreadyNominatedError:
+        raise HTTPException(status_code=409, detail="User already has a nomination")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+
+
+@router.post("/{selection_id}/nominations/new", response_model=NominationRead, status_code=201)
+def create_nomination_from_new_book(selection_id: int, payload: NominationNewBookCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        nomination = selection_service.create_nomination_from_new_book(
+            db=db,
+            selection_id=selection_id,
+            user_id=current_user.id,
+            title=payload.title,
+            author=payload.author,
+            comment=payload.comment,
+        )
         return selection_service.to_nomination_read(db=db, nomination=nomination)
     except BookSelectionNotFoundError:
         raise HTTPException(status_code=404, detail="Book selection not found")
@@ -107,20 +142,19 @@ def create_nomination(selection_id: int, payload: NominationCreate, db: Session 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
-@router.patch("/{selection_id}/nominations/me/book", response_model=NominationRead)
-def update_user_nomination_book(
+@router.patch("/{selection_id}/nominations/me/change-book/from-existing", response_model=NominationRead)
+def change_user_nomination_to_existing_book(
     selection_id: int,
-    payload: NominationBookUpdate,
+    payload: NominationExistingBookChange,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     try:
-        nomination = selection_service.update_user_nomination_book(
+        nomination = selection_service.change_user_nomination_to_existing_book(
             db=db,
             selection_id=selection_id,
             user_id=current_user.id,
-            title=payload.title,
-            author=payload.author,
+            book_id=payload.book_id,
         )
         return selection_service.to_nomination_read(db=db, nomination=nomination)
     except BookSelectionNotFoundError:
@@ -134,15 +168,15 @@ def update_user_nomination_book(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
-@router.patch("/{selection_id}/nominations/me/change-book", response_model=NominationRead)
-def change_user_nomination_book(
+@router.patch("/{selection_id}/nominations/me/change-book/new", response_model=NominationRead)
+def change_user_nomination_to_new_book(
     selection_id: int,
-    payload: NominationBookUpdate,
+    payload: NominationNewBookChange,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     try:
-        nomination = selection_service.change_user_nomination_book(
+        nomination = selection_service.change_user_nomination_to_new_book(
             db=db,
             selection_id=selection_id,
             user_id=current_user.id,
@@ -173,6 +207,29 @@ def update_user_nomination_comment(selection_id: int, payload: NominationComment
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
+@router.patch("/{selection_id}/nominations/me/edit-new-book", response_model=NominationRead)
+def edit_user_new_nomination_book(selection_id: int, payload: NominationBookUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        nomination = selection_service.update_user_nomination_book(
+            db=db,
+            selection_id=selection_id,
+            user_id=current_user.id,
+            title=payload.title,
+            author=payload.author,
+        )
+        return selection_service.to_nomination_read(db=db, nomination=nomination)
+    except BookSelectionNotFoundError:
+        raise HTTPException(status_code=404, detail="Book selection not found")
+    except NominationNotFoundError:
+        raise HTTPException(status_code=404, detail="Nomination not found")
+    except NominationsNotOpenError:
+        raise HTTPException(status_code=409, detail="Nominations not open")
+    except WrongNominationError:
+        raise HTTPException(status_code=409, detail="Only manually created nomination books can be edited")
+    except BookNotFoundError:
+        raise HTTPException(status_code=404, detail="Book not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
 @router.get("/{selection_id}/nominations", response_model=list[NominationRead], dependencies=[Depends(get_current_user)])
 def get_nominations_for_selection(selection_id: int, db: Session = Depends(get_db)):

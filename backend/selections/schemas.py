@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus, MeetingStatus
+from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus, MeetingStatus, \
+    NominationBookSource
 
 
 class BookSelectionCreate(BaseModel):
@@ -80,6 +81,56 @@ class NominationRead(BaseModel):
     title: str
     author: str
     comment: str | None
+    book_source: NominationBookSource
+
+class NominationExistingBookCreate(BaseModel):
+    book_id: int
+    comment: str | None
+
+    @field_validator("comment")
+    @classmethod
+    def normalize_comment(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
+class NominationNewBookCreate(BaseModel):
+    title: str
+    author: str
+    comment: str | None
+
+    @field_validator("title", "author")
+    @classmethod
+    def validate_non_empty_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Field cannot be empty")
+        return value
+
+    @field_validator("comment")
+    @classmethod
+    def normalize_comment(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
+class NominationExistingBookChange(BaseModel):
+    book_id: int
+
+class NominationNewBookChange(BaseModel):
+    title: str
+    author: str
+
+    @field_validator("title", "author")
+    @classmethod
+    def validate_non_empty_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Field cannot be empty")
+        return value
+
 
 class VoteCreate(BaseModel):
     nomination_ids: list[int]

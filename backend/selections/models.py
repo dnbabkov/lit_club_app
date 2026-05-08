@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, UniqueConstraint, Float, Boolean
 from lit_club_app.backend.db.base import Base
 
-from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus, NominationBookSource
 
 
 class BookSelection(Base):
@@ -20,6 +20,7 @@ class Nomination(Base):
     selection_id = Column(Integer, ForeignKey("book_selections.id"), nullable=False)
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
     comment = Column(String, nullable=True)
+    book_source = Column(Enum(NominationBookSource), nullable=False, default=NominationBookSource.NEW_BOOK,)
 
     __table_args__ = (
         UniqueConstraint('user_id', 'selection_id', name='_user_selection_uc'),

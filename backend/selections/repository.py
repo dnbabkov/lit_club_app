@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from lit_club_app.backend.selections.models import BookSelection, Nomination, Vote, WinnerSelectionSession, WinnerSelectionStep, \
     WinnerSelectionStepCandidate
-from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus, NominationBookSource
 from lit_club_app.backend.users.models import User
 
 
@@ -111,8 +111,8 @@ class NominationRepository:
         result = db.execute(statement)
         return result.scalars().all()
 
-    def create_nomination(self, db: Session, user_id: int, book_id: int, selection: BookSelection, comment: str | None = None) -> Nomination:
-        nomination = Nomination(user_id=user_id, selection_id=selection.id, book_id=book_id, comment=comment)
+    def create_nomination(self, db: Session, user_id: int, book_id: int, selection: BookSelection, book_source: NominationBookSource, comment: str | None = None) -> Nomination:
+        nomination = Nomination(user_id=user_id, selection_id=selection.id, book_id=book_id, comment=comment, book_source=book_source)
         try:
             db.add(nomination)
             db.commit()
@@ -122,9 +122,10 @@ class NominationRepository:
             db.rollback()
             raise
 
-    def update_nomination(self, db: Session, nomination: Nomination, book_id: int, comment: str | None = None) -> Nomination:
+    def update_nomination(self, db: Session, nomination: Nomination, book_id: int, book_source: NominationBookSource, comment: str | None = None) -> Nomination:
         try:
             nomination.book_id = book_id
+            nomination.book_source = book_source
             if comment is not None:
                 nomination.comment = comment
             db.commit()
