@@ -64,6 +64,41 @@ async function request<T>(
     return data as T
 }
 
+export async function uploadFormData<T>(path: string, formData: FormData): Promise<T> {
+    const token = getToken()
+    const headers: Record<string, string> = {}
+
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_URL}${path}`, {
+        method: "POST",
+        headers,
+        body: formData
+    })
+
+    if (!response.ok) {
+        let errorMessage = "Request failed"
+
+        try {
+            const errorData = await response.json()
+            if (errorData.detail) {
+                errorMessage = errorData.detail
+            }
+        } catch {
+            errorMessage = "No JSON"
+        }
+
+        throw new ApiError(response.status, errorMessage)
+    }
+    if (response.status === 204) {
+        return null as T
+    }
+    const data = await response.json()
+    return data as T
+}
+
 export async function get<T>(path: string): Promise<T> {
     return request<T>(path, {method : "GET"})
 }

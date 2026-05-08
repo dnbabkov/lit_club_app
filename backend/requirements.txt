@@ -9,6 +9,7 @@ pydantic-settings
 PyJWT
 pwdlib[argon2]
 python-dotenv
+python-multipart
 
 # Tests
 pytest

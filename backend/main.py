@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+
+from lit_club_app.backend.core.config import settings
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -25,8 +28,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+settings.upload_dir.mkdir(parents=True, exist_ok=True)
+
 app.include_router(users_router)
 app.include_router(selections_router)
 app.include_router(meetings_router)
 app.include_router(books_router)
 app.include_router(reviews_router)
+
+app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")

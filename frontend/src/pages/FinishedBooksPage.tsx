@@ -2,8 +2,29 @@ import { useCallback, useEffect, useState } from "react"
 import { Layout } from "../components/Layout"
 import { ApiError } from "../api/http"
 import { getFinishedBooksWithReviews } from "../api/books"
-import { BookWithReviewsCard } from "../components/books/BookWithReviewsCard"
+import { BookCard } from "../components/books/BookCard"
 import type { BookWithReviewsRead } from "../types/books"
+import type { ReviewRead } from "../types/reviews"
+
+function formatAverageRating(reviews: ReviewRead[]): string | null {
+  if (reviews.length === 0) {
+    return null
+  }
+
+  const sum = reviews.reduce((acc, review) => acc + review.rating, 0)
+  const average = sum / reviews.length
+
+  return `${average.toFixed(1)}/5`
+}
+
+function getRandomReview(reviews: ReviewRead[]): ReviewRead | null {
+  if (reviews.length === 0) {
+    return null
+  }
+
+  const index = Math.floor(Math.random() * reviews.length)
+  return reviews[index]
+}
 
 export function FinishedBooksPage() {
   const [items, setItems] = useState<BookWithReviewsRead[]>([])
@@ -51,9 +72,12 @@ export function FinishedBooksPage() {
       {!isLoading && !errorMessage && items.length > 0 && (
         <div>
           {items.map((item) => (
-            <BookWithReviewsCard
+            <BookCard
               key={item.book.id}
-              item={item}
+              book={item.book}
+              averageRating={formatAverageRating(item.reviews)}
+              randomReview={getRandomReview(item.reviews)}
+              from="/books/finished"
             />
           ))}
         </div>

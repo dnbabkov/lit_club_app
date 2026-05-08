@@ -155,3 +155,15 @@ class AlreadyAssignedError(BookError):
 
 class CantDeleteNominatedBookError(BookError):
     pass
+
+class FileErrors(Exception):
+    pass
+
+class ForbiddenFileTypeError(FileErrors):
+    pass
+
+class FileTooHeavyError(FileErrors):
+    pass
+
+class BookFileNotFoundError(FileErrors):
+    pass

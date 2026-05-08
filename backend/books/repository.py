@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from lit_club_app.backend.books.models import Book
 from lit_club_app.backend.core.exceptions import BookNotFoundError, AlreadyAssignedError
+from lit_club_app.backend.files.models import UploadedFile
 from lit_club_app.backend.meetings.models import Meeting
 from lit_club_app.backend.common.enums import MeetingStatus
 from lit_club_app.backend.reviews.models import Review
@@ -13,10 +14,7 @@ from lit_club_app.backend.users.models import User
 
 class BookRepository:
     def get_by_id(self, db: Session, book_id: int) -> Book | None:
-        statement = (
-            select(Book)
-            .where(Book.id == book_id)
-        )
+        statement = select(Book).where(Book.id == book_id)
         result = db.execute(statement)
         return result.scalar_one_or_none()
 
@@ -144,3 +142,15 @@ class BookRepository:
         )
         result = db.execute(statement)
         return result.scalar_one()
+
+    def set_book_cover(self, db: Session, book: Book, uploaded_file: UploadedFile | None) -> Book:
+        book.cover_file_id = uploaded_file.id if uploaded_file is not None else None
+        db.add(book)
+        db.flush()
+        return book
+
+    def set_book_file(self, db: Session, book: Book, uploaded_file: UploadedFile | None) -> Book:
+        book.book_file_id = uploaded_file.id if uploaded_file is not None else None
+        db.add(book)
+        db.flush()
+        return book

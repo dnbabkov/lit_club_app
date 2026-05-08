@@ -65,3 +65,6 @@ temp/
 .env.local
 .env.development
 .env.production
+
+# Uploaded files
+backend/uploads/

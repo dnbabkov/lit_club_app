@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
 from lit_club_app.backend.common.enums import MeetingStatus
+from lit_club_app.backend.files.schemas import BookFileRead
 from lit_club_app.backend.reviews.schemas import ReviewRead
 
 class BookCreate(BaseModel):
@@ -19,6 +20,9 @@ class BookRead(BaseModel):
     author: str
     description: str | None
     user_id: int | None
+
+    cover_url : str | None = None
+    book_file: BookFileRead | None = None
 
 class CanDeleteBookRead(BaseModel):
     book: BookRead

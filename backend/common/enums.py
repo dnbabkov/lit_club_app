@@ -20,3 +20,8 @@ class WinnerSelectionStatus(enum.Enum):
     IN_PROGRESS = "in_progress"
     READY_TO_FINALIZE = "ready_to_finalize"
     FINALIZED = "finalized"
+
+class UploadedFileTypes(enum.Enum):
+    BOOK_COVER = "book_cover"
+    BOOK_FILE = "book_file"
+    ACHIEVEMENT_IMAGE = "achievement_image"

@@ -1,4 +1,4 @@
-import {del, get, patch, post} from "./http"
+import {del, get, patch, post, uploadFormData} from "./http"
 import type {
   BookAssignUserPayload,
   BookChangeDescriptionPayload,
@@ -56,4 +56,26 @@ export async function assignUserToBook(
 
 export async function deleteBook(bookId: number): Promise<void> {
   return del<void>(`/books/${bookId}`)
+}
+
+export async function uploadBookCover(bookId: number, file: File): Promise<BookRead> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  return uploadFormData<BookRead>(`/books/${bookId}/cover`, formData)
+}
+
+export async function deleteBookCover(bookId: number): Promise<BookRead> {
+  return del<BookRead>(`/books/${bookId}/cover`)
+}
+
+export async function uploadBookFile(bookId: number, file: File): Promise<BookRead> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  return uploadFormData<BookRead>(`/books/${bookId}/file`, formData)
+}
+
+export async function deleteBookFile(bookId: number): Promise<BookRead> {
+  return del<BookRead>(`/books/${bookId}/file`)
 }

@@ -12,6 +12,9 @@ class Book(Base):
     normalized_author = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
+    cover_file_id = Column(Integer, ForeignKey("uploaded_files.id"), nullable=True)
+    book_file_id = Column(Integer, ForeignKey("uploaded_files.id"), nullable=True)
+
     __table_args__ = (
         UniqueConstraint('normalized_title', 'normalized_author', name='_title_author_uc'),
     )

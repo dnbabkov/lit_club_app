@@ -6,6 +6,17 @@ export type BookRead = {
   author: string
   description: string | null
   user_id: number | null
+
+  cover_url: string | null
+  book_file: BookFileRead | null
+}
+
+export type BookFileRead = {
+  id: number
+  original_filename: string
+  content_type: string
+  size_bytes: number
+  download_url: string
 }
 
 export type CanDeleteBookRead = {
