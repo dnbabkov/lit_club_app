@@ -91,3 +91,12 @@ class MeetingRepository:
         )
         result = db.execute(statement)
         return result.scalars().all()
+
+    def get_all_meeting_book_ids(self, db: Session) -> Sequence[int]:
+        statement = (
+            select(Meeting.book_id)
+            .where(Meeting.book_id.is_not(None))
+            .distinct()
+        )
+        result = db.execute(statement)
+        return result.scalars().all()

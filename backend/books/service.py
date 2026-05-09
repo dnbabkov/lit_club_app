@@ -18,6 +18,7 @@ from lit_club_app.backend.files.models import UploadedFile
 from lit_club_app.backend.files.repository import FileRepository
 from lit_club_app.backend.files.schemas import BookFileRead
 from lit_club_app.backend.files.service import file_service
+from lit_club_app.backend.meetings.repository import MeetingRepository
 from lit_club_app.backend.reviews.models import Review
 from lit_club_app.backend.reviews.repository import ReviewRepository
 from lit_club_app.backend.reviews.service import review_service
@@ -32,11 +33,14 @@ class BookService:
         self.review_repo = ReviewRepository()
         self.user_repo = UserRepository()
         self.nomination_repo = NominationRepository()
+        self.meeting_repo = MeetingRepository()
         self.file_repo = FileRepository()
 
     def can_user_delete_book(self, db: Session, book: Book, user: User) -> bool:
         nominated_book_ids = set(self.nomination_repo.get_all_nominated_books(db=db))
+        winning_book_ids = set(self.meeting_repo.get_all_meeting_book_ids(db=db))
         is_nominated = book.id in nominated_book_ids
+        has_won = book.id in winning_book_ids
 
         has_delete_rights = (
                 book.user_id is None
@@ -45,7 +49,7 @@ class BookService:
                 or user.role == Roles.MODERATOR
         )
 
-        return has_delete_rights and not is_nominated
+        return has_delete_rights and not is_nominated and not has_won
 
     def create_book(self, db: Session, title: str, author: str, description: str | None, user_id: int) -> Book:
         book = self.book_repo.get_by_norm_title_and_author(db=db, norm_title=title.strip().lower(), norm_author=author.strip().lower())
@@ -74,10 +78,11 @@ class BookService:
     def delete_book(self, db: Session, book_id: int, user: User) -> None:
         book = self.book_repo.get_by_id(db=db, book_id=book_id)
         nominations = set(self.nomination_repo.get_all_nominated_books(db=db))
-        if book.id in nominations:
-            raise CantDeleteNominatedBookError()
+        winning_books = set(self.meeting_repo.get_all_meeting_book_ids(db=db))
         if book is None:
             raise BookNotFoundError()
+        if book.id in nominations or book.id in winning_books:
+            raise CantDeleteNominatedBookError()
         if self.can_user_delete_book(db=db, book=book,user=user):
             return self.book_repo.delete_book(db=db, book_id=book_id)
         else:
