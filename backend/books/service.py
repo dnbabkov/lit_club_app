@@ -218,7 +218,6 @@ class BookService:
             db.rollback()
             if new_file_path is not None:
                 file_service.delete_file_safely(new_file_path)
-
             raise
 
         if old_cover_path is not None:
@@ -228,27 +227,18 @@ class BookService:
 
     def delete_book_cover(self, db: Session, book_id: int, current_user: User) -> BookRead:
         book = self.book_repo.get_by_id(db=db, book_id=book_id)
-
         if book is None:
             raise BookNotFoundError()
-
-        if (current_user.role != Roles.ADMIN and current_user.role != Roles.MODERATOR and book.user_id is not None and book.user_id != current_user.id
-        ):
+        if (current_user.role != Roles.ADMIN and current_user.role != Roles.MODERATOR and book.user_id is not None and book.user_id != current_user.id):
             raise NotYourBookError()
-
         if book.cover_file_id is None:
             return self.to_book_read(db=db, book=book)
-
         old_cover_file = self.file_repo.get_by_id(db=db, file_id=book.cover_file_id)
-
         if old_cover_file is None:
             self.book_repo.set_book_cover(db=db, book=book, uploaded_file=None)
             db.commit()
-
             return self.to_book_read(db=db, book=book)
-
         old_cover_path = old_cover_file.storage_path
-
         try:
             self.book_repo.set_book_cover(db=db, book=book, uploaded_file=None)
             self.file_repo.delete_file_record(db=db, uploaded_file=old_cover_file)
@@ -262,23 +252,16 @@ class BookService:
         return self.to_book_read(db=db, book=book)
 
     async def upload_book_file(self, db: Session, book_id: int, file: UploadFile, current_user: User) -> BookRead:
-
         book = self.book_repo.get_by_id(db=db, book_id=book_id)
         if book is None:
             raise BookNotFoundError()
-
         if current_user.role != Roles.ADMIN and current_user.role != Roles.MODERATOR and book.user_id is not None and book.user_id != current_user.id:
             raise NotYourBookError()
-
         old_book_file = None
-
         if book.book_file_id is not None:
             old_book_file = self.file_repo.get_by_id(db=db, file_id=book.book_file_id)
-
         old_book_file_path = old_book_file.storage_path if old_book_file is not None else None
-
         new_file_path: str | None = None
-
         try:
             saved_file = await file_service.save_uploaded_file(
                 file=file,
@@ -287,9 +270,7 @@ class BookService:
                 allowed_extensions=ALLOWED_BOOK_FILE_EXTENSIONS,
                 max_size_bytes=settings.max_book_file_size_bytes,
             )
-
             new_file_path = saved_file.storage_path
-
             uploaded_file = self.file_repo.create_file_record(
                 db=db,
                 original_filename=saved_file.original_filename,
@@ -303,16 +284,13 @@ class BookService:
             if old_book_file is not None:
                 self.file_repo.delete_file_record(db=db, uploaded_file=old_book_file)
             db.commit()
-
         except Exception:
             db.rollback()
             if new_file_path is not None:
                 file_service.delete_file_safely(new_file_path)
             raise
-
         if old_book_file_path is not None:
             file_service.delete_file_safely(old_book_file_path)
-
         return self.to_book_read(db=db, book=book)
 
     def delete_book_file(self, db: Session, book_id: int, current_user: User) -> BookRead:

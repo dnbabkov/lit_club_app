@@ -7,6 +7,22 @@ type MeetingCardProps = {
   onSchedule?: (meetingId: number) => void
 }
 
+function formatMeetingTitle(status: string): string {
+  if (status === "book_selection") {
+    return "Выбор книги"
+  }
+
+  if (status === "scheduled") {
+    return "Запланированная встреча"
+  }
+
+  if (status === "finished") {
+    return "Прошедшая встреча"
+  }
+
+  return "Встреча"
+}
+
 function formatMeetingStatus(status: string): string {
   if (status === "book_selection") {
     return "Идёт выбор книги"
@@ -82,7 +98,7 @@ export function MeetingCard({
       }}
     >
       <h3 style={{ marginTop: 0, marginBottom: 12 }}>
-        Встреча #{meeting.id}
+        {formatMeetingTitle(meeting.status)}
       </h3>
 
       <p style={{ margin: "4px 0" }}>
