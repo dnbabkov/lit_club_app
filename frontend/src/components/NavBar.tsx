@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { getCurrentUser } from "../api/auth"
 import { useAuth } from "../auth/AuthContext.tsx"
 import type { UserRead } from "../api/auth"
 
 export function NavBar() {
   const { isAuthenticated, logout } = useAuth()
+  const location = useLocation()
   const [currentUser, setCurrentUser] = useState<UserRead | null>(null)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -37,46 +39,121 @@ export function NavBar() {
     }
   }, [isAuthenticated])
 
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return
+    }
+
+    const previousBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMobileMenuOpen(false)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isMobileMenuOpen])
+
   const isAdmin = currentUser?.role === "admin"
 
-  return (
-    <header
-      style={{
-        borderBottom: "1px solid #ddd",
-        padding: "16px 24px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}
-    >
-      <div>
-        <Link
-          to="/"
-          style={{ fontWeight: "bold", textDecoration: "none", color: "black" }}
-        >
-          Литературный клуб
-        </Link>
-      </div>
+  function closeMobileMenu() {
+    setIsMobileMenuOpen(false)
+  }
 
-      <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
+  function handleLogout() {
+    closeMobileMenu()
+    logout()
+  }
+
+  return (
+    <header className="navbar">
+      <Link to="/" className="navbar__brand" onClick={closeMobileMenu}>
+        Литературный клуб
+      </Link>
+
+      <button
+        type="button"
+        className="navbar__burger"
+        aria-label={isMobileMenuOpen ? "Закрыть меню" : "Открыть меню"}
+        aria-expanded={isMobileMenuOpen}
+        aria-controls="site-navigation"
+        onClick={() => setIsMobileMenuOpen((isOpen) => !isOpen)}
+      >
+        <span />
+        <span />
+        <span />
+      </button>
+
+      <button
+        type="button"
+        className={`navbar__overlay${isMobileMenuOpen ? " navbar__overlay--open" : ""}`}
+        aria-label="Закрыть меню"
+        onClick={closeMobileMenu}
+      />
+
+      <nav
+        id="site-navigation"
+        className={`navbar__links${isMobileMenuOpen ? " navbar__links--open" : ""}`}
+      >
+        <div className="navbar__mobile-header">
+          <span>Меню</span>
+          <button
+            type="button"
+            className="navbar__close"
+            aria-label="Закрыть меню"
+            onClick={closeMobileMenu}
+          >
+            ×
+          </button>
+        </div>
+
         {isAuthenticated ? (
           <>
-            <Link to="/meetings">Встречи</Link>
-            <Link to="/selection">Выбор книги</Link>
-            <Link to="/books/finished">Прочитанные книги</Link>
-            <Link to="/books">Все книги</Link>
+            <Link to="/meetings" className="navbar__link">
+              Встречи
+            </Link>
+            <Link to="/selection" className="navbar__link">
+              Выбор книги
+            </Link>
+            <Link to="/books/finished" className="navbar__link">
+              Прочитанные книги
+            </Link>
+            <Link to="/books" className="navbar__link">
+              Все книги
+            </Link>
 
-            {isAdmin && <Link to="/users">Пользователи</Link>}
+            {isAdmin && (
+              <Link to="/users" className="navbar__link">
+                Пользователи
+              </Link>
+            )}
 
-            <Link to="/profile">Профиль</Link>
-            <button type="button" onClick={logout}>
+            <Link to="/profile" className="navbar__link">
+              Профиль
+            </Link>
+            <button type="button" className="navbar__link-button" onClick={handleLogout}>
               Выйти
             </button>
           </>
         ) : (
           <>
-            <Link to="/login">Войти</Link>
-            <Link to="/register">Регистрация</Link>
+            <Link to="/login" className="navbar__link">
+              Войти
+            </Link>
+            <Link to="/register" className="navbar__link">
+              Регистрация
+            </Link>
           </>
         )}
       </nav>
