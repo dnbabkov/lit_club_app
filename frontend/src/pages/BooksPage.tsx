@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useState } from "react"
 import { Layout } from "../components/Layout"
 import { ApiError } from "../api/http"
-import { deleteBook, getBooks } from "../api/books"
+import {deleteBook, getAllBooksWithReviews, getBooks} from "../api/books"
 import { getCurrentUser } from "../api/auth"
 import { BookCard } from "../components/books/BookCard"
 import { BookCreateForm } from "../components/books/BookCreateForm"
 import { BookEditor } from "../components/books/BookEditor"
 import { BookAssignUserForm } from "../components/books/BookAssignUserForm"
-import type { BookRead, CanDeleteBookRead } from "../types/books"
+import type {BookRead, BookWithReviewsRead, CanDeleteBookRead} from "../types/books"
 import type { UserRead } from "../api/auth"
+import type {ReviewRead} from "../types/reviews.ts";
 
 export function BooksPage() {
   const [books, setBooks] = useState<CanDeleteBookRead[]>([])
+  const [items, setItems] = useState<BookWithReviewsRead[]>([])
   const [currentUser, setCurrentUser] = useState<UserRead | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
@@ -25,10 +27,12 @@ export function BooksPage() {
     setErrorMessage("")
 
     try {
+      const data = await getAllBooksWithReviews()
       const booksResponse = await getBooks()
       const userResponse = await getCurrentUser()
 
       setBooks(booksResponse.books)
+      setItems(data)
       setCurrentUser(userResponse)
     } catch (error) {
       if (error instanceof ApiError) {
@@ -55,6 +59,15 @@ export function BooksPage() {
         (book.user_id === null || isAdmin || book.user_id === currentUser.id)
     )
   }
+
+  function getRandomReview(reviews: ReviewRead[]): ReviewRead | null {
+  if (reviews.length === 0) {
+    return null
+  }
+
+  const index = Math.floor(Math.random() * reviews.length)
+  return reviews[index]
+}
 
   function canAssignUserToBook(book: BookRead): boolean {
     return Boolean(isAdmin && book.user_id === null)
@@ -158,6 +171,9 @@ export function BooksPage() {
           {books.map((item) => {
             const book = item.book
 
+            // Найдём объект с отзывами для этой книги
+            const itemWithReviews = items.find((i) => i.book.id === book.id)
+
             return (
               <div key={book.id}>
                 <BookCard
@@ -166,6 +182,7 @@ export function BooksPage() {
                   canAssignUser={canAssignUserToBook(book)}
                   canDelete={item.can_delete}
                   isDeleting={deletingBookId === book.id}
+                  randomReview={itemWithReviews ? getRandomReview(itemWithReviews.reviews) : null}
                   onEditBook={handleOpenEditBook}
                   onAssignUser={handleOpenAssignUser}
                   onDeleteBook={handleDeleteBook}

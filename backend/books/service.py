@@ -66,6 +66,29 @@ class BookService:
     def get_all_books(self, db: Session) -> Sequence[Book]:
         return self.book_repo.get_all_books(db=db)
 
+    def get_all_books_with_reviews(self, db: Session) -> list[BookWithReviewsRead]:
+        all_books = self.book_repo.get_all_books(db=db)
+        book_ids = [book.id for book in all_books]
+
+        reviews = review_service.get_reviews_for_books(db=db, book_ids=book_ids)
+
+        reviews_by_book_id: dict[int, list[Review]] = defaultdict(list)
+        for review in reviews:
+            reviews_by_book_id[review.book_id].append(review)
+
+        results = []
+        for book in all_books:
+            book_reviews = reviews_by_book_id.get(book.id, [])
+            review_reads = review_service.to_reviews_read(db=db, reviews=book_reviews)
+
+            result = {
+                "book": self.to_book_read(db=db, book=book),
+                "reviews": review_reads,
+            }
+            results.append(BookWithReviewsRead.model_validate(result))
+
+        return results
+
     def update_book_fields(self, db: Session, title: str, author: str, book_id: int, user: User) -> Book:
         book = self.book_repo.get_by_id(db=db, book_id=book_id)
         if book is None:

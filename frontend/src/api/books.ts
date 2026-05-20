@@ -20,6 +20,10 @@ export async function getFinishedBooksWithReviews(): Promise<BookWithReviewsRead
   return get<BookWithReviewsRead[]>("/books/finished-with-reviews")
 }
 
+export async function getAllBooksWithReviews(): Promise<BookWithReviewsRead[]> {
+  return get<BookWithReviewsRead[]>("/books/all-with-reviews")
+}
+
 export async function getBook(bookId: number): Promise<BookRead> {
   return get<BookRead>(`/books/${bookId}`)
 }
