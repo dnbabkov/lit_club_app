@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Layout } from "../components/Layout"
 import { ApiError } from "../api/http"
 import { getFinishedBooksWithReviews } from "../api/books"
@@ -26,8 +26,25 @@ function getRandomReview(reviews: ReviewRead[]): ReviewRead | null {
   return reviews[index]
 }
 
+function bookMatchesSearch(
+  book: { title: string; author?: string | null },
+  searchQuery: string
+): boolean {
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase()
+
+  if (!normalizedSearchQuery) {
+    return true
+  }
+
+  return (
+    book.title.toLowerCase().includes(normalizedSearchQuery) ||
+    (book.author ?? "").toLowerCase().includes(normalizedSearchQuery)
+  )
+}
+
 export function FinishedBooksPage() {
   const [items, setItems] = useState<BookWithReviewsRead[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
 
@@ -55,9 +72,36 @@ export function FinishedBooksPage() {
     loadFinishedBooks()
   }, [loadFinishedBooks])
 
+  const filteredItems = items.filter((item) =>
+    bookMatchesSearch(item.book, searchQuery)
+  )
+
+  const randomReviewsByBookId = useMemo(() => {
+    const result = new Map<number, ReviewRead | null>()
+
+    for (const item of items) {
+      result.set(item.book.id, getRandomReview(item.reviews))
+    }
+
+    return result
+  }, [items])
+
   return (
     <Layout>
       <h1>Прочитанные книги</h1>
+
+      <input
+        type="search"
+        value={searchQuery}
+        onChange={(event) => setSearchQuery(event.target.value)}
+        placeholder="Поиск по названию или автору"
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          padding: "10px 12px",
+          marginBottom: 24,
+        }}
+      />
 
       {isLoading && <p>Загрузка...</p>}
 
@@ -69,14 +113,19 @@ export function FinishedBooksPage() {
         <p>Пока нет ни одной прочитанной книги.</p>
       )}
 
-      {!isLoading && !errorMessage && items.length > 0 && (
+      {!isLoading &&
+        !errorMessage &&
+        items.length > 0 &&
+        filteredItems.length === 0 && <p>По вашему запросу ничего не найдено.</p>}
+
+      {!isLoading && !errorMessage && filteredItems.length > 0 && (
         <div>
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <BookCard
               key={item.book.id}
               book={item.book}
               averageRating={formatAverageRating(item.reviews)}
-              randomReview={getRandomReview(item.reviews)}
+              randomReview={randomReviewsByBookId.get(item.book.id) ?? null}
               from="/books/finished"
             />
           ))}

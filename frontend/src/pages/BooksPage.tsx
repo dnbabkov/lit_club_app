@@ -1,20 +1,37 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Layout } from "../components/Layout"
 import { ApiError } from "../api/http"
-import {deleteBook, getAllBooksWithReviews, getBooks} from "../api/books"
+import { deleteBook, getAllBooksWithReviews, getBooks } from "../api/books"
 import { getCurrentUser } from "../api/auth"
 import { BookCard } from "../components/books/BookCard"
 import { BookCreateForm } from "../components/books/BookCreateForm"
 import { BookEditor } from "../components/books/BookEditor"
 import { BookAssignUserForm } from "../components/books/BookAssignUserForm"
-import type {BookRead, BookWithReviewsRead, CanDeleteBookRead} from "../types/books"
+import type { BookRead, BookWithReviewsRead, CanDeleteBookRead } from "../types/books"
 import type { UserRead } from "../api/auth"
-import type {ReviewRead} from "../types/reviews.ts";
+import type { ReviewRead } from "../types/reviews.ts"
+
+function bookMatchesSearch(
+  book: { title: string; author?: string | null },
+  searchQuery: string
+): boolean {
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase()
+
+  if (!normalizedSearchQuery) {
+    return true
+  }
+
+  return (
+    book.title.toLowerCase().includes(normalizedSearchQuery) ||
+    (book.author ?? "").toLowerCase().includes(normalizedSearchQuery)
+  )
+}
 
 export function BooksPage() {
   const [books, setBooks] = useState<CanDeleteBookRead[]>([])
   const [items, setItems] = useState<BookWithReviewsRead[]>([])
   const [currentUser, setCurrentUser] = useState<UserRead | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
@@ -53,6 +70,20 @@ export function BooksPage() {
 
   const isAdmin = currentUser?.role === "admin"
 
+  const filteredBooks = books.filter((item) =>
+    bookMatchesSearch(item.book, searchQuery)
+  )
+
+  const randomReviewsByBookId = useMemo(() => {
+    const result = new Map<number, ReviewRead | null>()
+
+    for (const item of items) {
+      result.set(item.book.id, getRandomReview(item.reviews))
+    }
+
+    return result
+  }, [items])
+
   function canEditBook(book: BookRead): boolean {
     return Boolean(
       currentUser &&
@@ -61,20 +92,22 @@ export function BooksPage() {
   }
 
   function getRandomReview(reviews: ReviewRead[]): ReviewRead | null {
-  if (reviews.length === 0) {
-    return null
-  }
+    if (reviews.length === 0) {
+      return null
+    }
 
-  const index = Math.floor(Math.random() * reviews.length)
-  return reviews[index]
-}
+    const index = Math.floor(Math.random() * reviews.length)
+    return reviews[index]
+  }
 
   function canAssignUserToBook(book: BookRead): boolean {
     return Boolean(isAdmin && book.user_id === null)
   }
 
   function handleOpenEditBook(bookId: number) {
-    setEditingBookId((currentBookId) => (currentBookId === bookId ? null : bookId))
+    setEditingBookId((currentBookId) =>
+      currentBookId === bookId ? null : bookId
+    )
     setAssigningBookId(null)
   }
 
@@ -83,7 +116,9 @@ export function BooksPage() {
   }
 
   function handleOpenAssignUser(bookId: number) {
-    setAssigningBookId((currentBookId) => (currentBookId === bookId ? null : bookId))
+    setAssigningBookId((currentBookId) =>
+      currentBookId === bookId ? null : bookId
+    )
     setEditingBookId(null)
   }
 
@@ -138,6 +173,19 @@ export function BooksPage() {
     <Layout>
       <h1>Все книги</h1>
 
+      <input
+        type="search"
+        value={searchQuery}
+        onChange={(event) => setSearchQuery(event.target.value)}
+        placeholder="Поиск по названию или автору"
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          padding: "10px 12px",
+          marginBottom: 24,
+        }}
+      />
+
       <div style={{ marginBottom: 24 }}>
         <button
           type="button"
@@ -162,17 +210,19 @@ export function BooksPage() {
 
       {isLoading && <p>Загрузка...</p>}
 
-      {!isLoading && books.length === 0 && (
+      {!isLoading && !errorMessage && books.length === 0 && (
         <p>Пока в базе нет ни одной книги.</p>
       )}
 
-      {!isLoading && books.length > 0 && (
-        <div>
-          {books.map((item) => {
-            const book = item.book
+      {!isLoading &&
+        !errorMessage &&
+        books.length > 0 &&
+        filteredBooks.length === 0 && <p>По вашему запросу ничего не найдено.</p>}
 
-            // Найдём объект с отзывами для этой книги
-            const itemWithReviews = items.find((i) => i.book.id === book.id)
+      {!isLoading && !errorMessage && filteredBooks.length > 0 && (
+        <div>
+          {filteredBooks.map((item) => {
+            const book = item.book
 
             return (
               <div key={book.id}>
@@ -182,7 +232,7 @@ export function BooksPage() {
                   canAssignUser={canAssignUserToBook(book)}
                   canDelete={item.can_delete}
                   isDeleting={deletingBookId === book.id}
-                  randomReview={itemWithReviews ? getRandomReview(itemWithReviews.reviews) : null}
+                  randomReview={randomReviewsByBookId.get(book.id) ?? null}
                   onEditBook={handleOpenEditBook}
                   onAssignUser={handleOpenAssignUser}
                   onDeleteBook={handleDeleteBook}
