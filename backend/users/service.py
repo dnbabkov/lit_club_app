@@ -21,7 +21,7 @@ from lit_club_app.backend.core.exceptions import (
     TelegramLoginAlreadyExistsError,
     UserNotFoundError,
     InvalidPasswordError, EmptyTelegramLoginError, BookNotFoundError, BookSelectionNotFoundError, MeetingNotFoundError,
-    SamePasswordError,
+    SamePasswordError, NotEnoughPermissionsError,
 )
 
 class UserService:
@@ -165,5 +165,14 @@ class UserService:
         if verify_password(new_password, user.password_hash):
             raise SamePasswordError()
         return self.repo.update_user_password(db=db, user=user, password_hash=password_hash)
+
+    def update_user_password_admin(self, db: Session, user: User, target_user_id: int, new_password: str):
+        if user.role != Roles.ADMIN:
+            raise NotEnoughPermissionsError()
+        target_user = self.repo.get_by_id(db=db, user_id=target_user_id)
+        if target_user is None:
+            raise UserNotFoundError()
+        password_hash = hash_password(new_password)
+        return self.repo.update_user_password(db=db, user=target_user, password_hash=password_hash)
 
 user_service = UserService()

@@ -45,3 +45,6 @@ class UserProfileRead(BaseModel):
 class UpdatePassword(BaseModel):
     current_password: str = Field(min_length=4, max_length=50)
     new_password: str = Field(min_length=4, max_length=50)
+
+class UpdatePasswordAdmin(BaseModel):
+    new_password: str = Field(min_length=4, max_length=50)

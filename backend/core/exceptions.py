@@ -20,6 +20,9 @@ class InvalidPasswordError(UserServiceError):
 class EmptyTelegramLoginError(UserServiceError):
     pass
 
+class NotEnoughPermissionsError(UserServiceError):
+    pass
+
 class SamePasswordError(UserServiceError):
     pass
 

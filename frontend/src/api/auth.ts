@@ -1,4 +1,4 @@
-import { get, post } from "./http"
+import { get, patch, post } from "./http"
 
 export type RegisterPayload = {
   username: string
@@ -23,6 +23,10 @@ export type UserRead = {
   role: "member" | "moderator" | "admin"
 }
 
+export type UpdateUserPasswordPayload = {
+  new_password: string
+}
+
 export async function registerUser(
   payload: RegisterPayload
 ): Promise<TokenResponse> {
@@ -41,4 +45,11 @@ export async function getCurrentUser(): Promise<UserRead> {
 
 export async function getUsers(): Promise<UserRead[]> {
   return get<UserRead[]>("/users/")
+}
+
+export async function changeUserPassword(
+  userId: number,
+  payload: UpdateUserPasswordPayload
+): Promise<UserRead> {
+  return patch<UserRead>(`/users/${userId}/profile/password`, payload)
 }

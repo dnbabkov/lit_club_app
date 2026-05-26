@@ -5,13 +5,13 @@ from lit_club_app.backend.api.dependencies import get_db, get_current_user
 from lit_club_app.backend.core.security import create_access_token
 from lit_club_app.backend.users.models import User
 from lit_club_app.backend.users.schemas import UserRegister, UserLogin, UserRead, TokenResponse, UserProfileRead, \
-    UpdatePassword
+    UpdatePassword, UpdatePasswordAdmin
 from lit_club_app.backend.users.service import user_service
 from lit_club_app.backend.core.exceptions import (
     UsernameAlreadyExistsError,
     TelegramLoginAlreadyExistsError,
     UserNotFoundError,
-    InvalidPasswordError, EmptyTelegramLoginError, SamePasswordError,
+    InvalidPasswordError, EmptyTelegramLoginError, SamePasswordError, NotEnoughPermissionsError,
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -67,5 +67,16 @@ def update_user_password(payload: UpdatePassword, db: Session = Depends(get_db),
         raise HTTPException(status_code=401, detail="Incorrect password")
     except SamePasswordError:
         raise HTTPException(status_code=409, detail="New password can't be the same as the old password")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+@router.patch("/{user_id}/profile/password", response_model=UserRead, status_code=200)
+def update_user_password_admin(payload: UpdatePasswordAdmin, user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        return user_service.update_user_password_admin(db=db, user=current_user, target_user_id=user_id, new_password=payload.new_password)
+    except NotEnoughPermissionsError:
+        raise HTTPException(status_code=403, detail="Only admin can change others' passwords!")
+    except UserNotFoundError:
+        raise HTTPException(status_code=404, detail="User not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
