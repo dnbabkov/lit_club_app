@@ -70,6 +70,16 @@ def update_user_password(payload: UpdatePassword, db: Session = Depends(get_db),
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
+@router.get("/{username}/profile", response_model=UserProfileRead, status_code=200, dependencies=[Depends(get_current_user)])
+def get_other_user_profile(username: str, db: Session = Depends(get_db)):
+    try:
+        user = user_service.get_user_by_username(db=db, username=username)
+        return user_service.get_user_profile(db=db, user_id=user.id)
+    except UserNotFoundError:
+        raise HTTPException(status_code=404, detail="User not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
 @router.patch("/{user_id}/profile/password", response_model=UserRead, status_code=200)
 def update_user_password_admin(payload: UpdatePasswordAdmin, user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
@@ -80,3 +90,4 @@ def update_user_password_admin(payload: UpdatePasswordAdmin, user_id: int, db: S
         raise HTTPException(status_code=404, detail="User not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+

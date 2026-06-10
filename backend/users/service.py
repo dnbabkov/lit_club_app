@@ -175,4 +175,10 @@ class UserService:
         password_hash = hash_password(new_password)
         return self.repo.update_user_password(db=db, user=target_user, password_hash=password_hash)
 
+    def get_user_by_username(self, db: Session, username: str):
+        user = self.repo.get_by_username(db=db, username=username)
+        if user is None:
+            raise UserNotFoundError()
+        return user
+
 user_service = UserService()

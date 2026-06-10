@@ -44,13 +44,13 @@ class SelectionService:
         self.winner_selection_step_repo = WinnerSelectionStepRepository()
 
     #--------Helpers---------
-    def get_or_create_book(self, db: Session, author: str, title: str) -> Book:
+    def get_or_create_book(self, db: Session, author: str, title: str, user_id: int) -> Book:
         norm_title, norm_author = title.strip().lower(), author.strip().lower()
 
         book = self.book_repo.get_by_norm_title_and_author(db=db, norm_title=norm_title, norm_author=norm_author)
 
         if book is None:
-            book = self.book_repo.create_book(db=db, title=title, author=author)
+            book = self.book_repo.create_book(db=db, title=title, author=author, user_id=user_id)
 
         return book
 
@@ -92,13 +92,13 @@ class SelectionService:
             raise NominationsNotOpenError()
         return selection
 
-    def get_book_and_source_for_manual_input(self, db: Session, *, title: str, author: str) -> tuple[Book, NominationBookSource]:
+    def get_book_and_source_for_manual_input(self, db: Session, *, title: str, author: str, user_id: int) -> tuple[Book, NominationBookSource]:
         norm_title = title.strip().lower()
         norm_author = author.strip().lower()
         existing_book = self.book_repo.get_by_norm_title_and_author(db=db, norm_title=norm_title, norm_author=norm_author)
         if existing_book is not None:
             return existing_book, NominationBookSource.EXISTING_BOOK
-        book = self.get_or_create_book(db=db, author=author, title=title)
+        book = self.get_or_create_book(db=db, author=author, title=title, user_id=user_id)
         return book, NominationBookSource.NEW_BOOK
 
     # Selection methods
@@ -164,7 +164,7 @@ class SelectionService:
         nomination = self.nomination_repo.get_user_nomination_for_selection(db=db, user_id=user_id, selection=selection)
         if nomination is not None:
             raise UserAlreadyNominatedError()
-        book, book_source = self.get_book_and_source_for_manual_input(db=db, author=author, title=title)
+        book, book_source = self.get_book_and_source_for_manual_input(db=db, author=author, title=title, user_id=user_id)
         return self.nomination_repo.create_nomination(
             db=db,
             user_id=user_id,
@@ -183,7 +183,7 @@ class SelectionService:
 
     def change_user_nomination_to_new_book(self, db: Session, selection_id: int, user_id: int, title: str, author: str) -> Nomination:
         nomination = self.get_editable_user_nomination(db=db, selection_id=selection_id, user_id=user_id)
-        book, book_source = self.get_book_and_source_for_manual_input(db=db, author=author, title=title)
+        book, book_source = self.get_book_and_source_for_manual_input(db=db, author=author, title=title, user_id=user_id)
         return self.nomination_repo.update_nomination(db=db, nomination=nomination, book_id=book.id, book_source=book_source)
 
     def update_user_nomination_comment(self, db: Session, selection_id: int, user_id: int, comment: str | None):
