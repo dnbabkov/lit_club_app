@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useState, type SyntheticEvent } from "react"
-import { Layout } from "../components/Layout"
+import { useNavigate } from "react-router-dom"
+import {
+  changeUserPassword,
+  getCurrentUser,
+  getPublicUsers,
+  getUsers,
+  type UserPublicRead,
+  type UserRead,
+} from "../api/auth"
 import { ApiError } from "../api/http"
-import { changeUserPassword, getCurrentUser, getUsers } from "../api/auth"
-import type { UserRead } from "../api/auth"
+import { Layout } from "../components/Layout"
+
+type UsersPageUser = UserRead | UserPublicRead
 
 function formatTelegramLogin(telegramLogin: string): string {
   return telegramLogin.startsWith("@") ? telegramLogin : `@${telegramLogin}`
@@ -20,12 +29,53 @@ function getRoleLabel(role: UserRead["role"]): string {
   return "Участник"
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.message
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return "Unexpected error"
+}
+
+function hasFullUserData(user: UsersPageUser): user is UserRead {
+  return "telegram_login" in user && "role" in user
+}
+
+function UserAvatarPlaceholder({ username }: { username: string }) {
+  const initial = username.trim().charAt(0).toUpperCase() || "?"
+
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        border: "1px solid #ddd",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 600,
+        flexShrink: 0,
+      }}
+    >
+      {initial}
+    </div>
+  )
+}
+
 export function UsersPage() {
-  const [users, setUsers] = useState<UserRead[]>([])
+  const navigate = useNavigate()
+
+  const [currentUser, setCurrentUser] = useState<UserRead | null>(null)
+  const [users, setUsers] = useState<UsersPageUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
-  const [isForbidden, setIsForbidden] = useState(false)
 
   const [selectedUser, setSelectedUser] = useState<UserRead | null>(null)
   const [newPassword, setNewPassword] = useState("")
@@ -33,31 +83,40 @@ export function UsersPage() {
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("")
   const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false)
 
+  const isAdmin = currentUser?.role === "admin"
+
+  const adminUsers = users.filter(
+    (user): user is UserRead => hasFullUserData(user) && user.role !== "admin"
+  )
+
+  const publicUsers = users.filter((user) => {
+    if (!hasFullUserData(user)) {
+      return true
+    }
+
+    return user.role !== "admin"
+  })
+
+  const visibleUsers = isAdmin ? adminUsers : publicUsers
+
   const loadUsers = useCallback(async () => {
     setIsLoading(true)
     setErrorMessage("")
     setSuccessMessage("")
-    setIsForbidden(false)
 
     try {
-      const currentUser = await getCurrentUser()
+      const currentUserData = await getCurrentUser()
+      setCurrentUser(currentUserData)
 
-      if (currentUser.role !== "admin") {
-        setUsers([])
-        setIsForbidden(true)
-        return
-      }
-
-      const usersData = await getUsers()
-      setUsers(usersData)
-    } catch (error) {
-      if (error instanceof ApiError) {
-        setErrorMessage(error.message)
-      } else if (error instanceof Error) {
-        setErrorMessage(error.message)
+      if (currentUserData.role === "admin") {
+        const usersData = await getUsers()
+        setUsers(usersData.filter((user) => user.role !== "admin"))
       } else {
-        setErrorMessage("Unexpected error")
+        const usersData = await getPublicUsers()
+        setUsers(usersData)
       }
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error))
     } finally {
       setIsLoading(false)
     }
@@ -66,6 +125,10 @@ export function UsersPage() {
   useEffect(() => {
     loadUsers()
   }, [loadUsers])
+
+  function openUserProfile(username: string) {
+    navigate(`/users/${encodeURIComponent(username)}/profile`)
+  }
 
   function openPasswordModal(user: UserRead) {
     setSelectedUser(user)
@@ -124,13 +187,7 @@ export function UsersPage() {
       setConfirmPassword("")
       setPasswordErrorMessage("")
     } catch (error) {
-      if (error instanceof ApiError) {
-        setPasswordErrorMessage(error.message)
-      } else if (error instanceof Error) {
-        setPasswordErrorMessage(error.message)
-      } else {
-        setPasswordErrorMessage("Unexpected error")
-      }
+      setPasswordErrorMessage(getErrorMessage(error))
     } finally {
       setIsPasswordSubmitting(false)
     }
@@ -142,12 +199,6 @@ export function UsersPage() {
 
       {isLoading && <p>Загрузка...</p>}
 
-      {!isLoading && isForbidden && (
-        <p style={{ color: "crimson" }}>
-          У вас нет прав для просмотра этой страницы.
-        </p>
-      )}
-
       {!isLoading && errorMessage && (
         <p style={{ color: "crimson" }}>{errorMessage}</p>
       )}
@@ -156,11 +207,58 @@ export function UsersPage() {
         <p style={{ color: "green", marginBottom: 12 }}>{successMessage}</p>
       )}
 
-      {!isLoading && !isForbidden && !errorMessage && users.length === 0 && (
+      {!isLoading && !errorMessage && visibleUsers.length === 0 && (
         <p>Пользователи не найдены.</p>
       )}
 
-      {!isLoading && !isForbidden && !errorMessage && users.length > 0 && (
+      {!isLoading && !errorMessage && !isAdmin && visibleUsers.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            marginTop: 16,
+          }}
+        >
+          {visibleUsers.map((user) => (
+            <div
+              key={user.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                padding: 12,
+                textAlign: "left",
+              }}
+            >
+              <UserAvatarPlaceholder username={user.username} />
+
+              <strong
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {user.username}
+              </strong>
+
+              <span aria-hidden="true">—</span>
+
+              <button
+                type="button"
+                onClick={() => openUserProfile(user.username)}
+              >
+                Перейти в профиль
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && !errorMessage && isAdmin && adminUsers.length > 0 && (
         <table
           style={{
             width: "100%",
@@ -210,7 +308,7 @@ export function UsersPage() {
           </thead>
 
           <tbody>
-            {users.map((user) => (
+            {adminUsers.map((user) => (
               <tr key={user.id}>
                 <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>
                   {user.username}
@@ -222,9 +320,21 @@ export function UsersPage() {
                   {getRoleLabel(user.role)}
                 </td>
                 <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>
-                  <button type="button" onClick={() => openPasswordModal(user)}>
-                    Изменить пароль пользователя
-                  </button>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => openUserProfile(user.username)}
+                    >
+                      Перейти в профиль
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => openPasswordModal(user)}
+                    >
+                      Изменить пароль пользователя
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -320,7 +430,13 @@ export function UsersPage() {
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  justifyContent: "flex-end",
+                }}
+              >
                 <button
                   type="button"
                   onClick={closePasswordModal}
@@ -328,6 +444,7 @@ export function UsersPage() {
                 >
                   Отмена
                 </button>
+
                 <button type="submit" disabled={isPasswordSubmitting}>
                   {isPasswordSubmitting ? "Сохраняем..." : "Сохранить"}
                 </button>

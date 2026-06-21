@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useState, type SyntheticEvent } from "react"
-import { Layout } from "../components/Layout"
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type SyntheticEvent,
+} from "react"
+import { useNavigate, useParams } from "react-router-dom"
 import { ApiError } from "../api/http"
-import { changeMyPassword, getMyProfile } from "../api/profile"
+import { changeMyPassword, getMyProfile, getUserProfile } from "../api/profile"
+import { useAuth } from "../auth/AuthContext"
+import { Layout } from "../components/Layout"
 import { ProfileBookCard } from "../components/profile/ProfileBookCard"
 import type { UserProfileRead } from "../types/profile"
 
@@ -30,6 +37,12 @@ function getErrorMessage(error: unknown): string {
 }
 
 export function ProfilePage() {
+  const { username } = useParams<{ username: string }>()
+  const navigate = useNavigate()
+  const { user: currentUser } = useAuth()
+
+  const isOwnProfileRoute = !username
+
   const [profile, setProfile] = useState<UserProfileRead | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
@@ -42,26 +55,52 @@ export function ProfilePage() {
   const [passwordSuccessMessage, setPasswordSuccessMessage] = useState("")
   const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false)
 
+  const resetPasswordForm = useCallback(() => {
+    setIsPasswordFormOpen(false)
+    setCurrentPassword("")
+    setNewPassword("")
+    setNewPasswordRepeat("")
+    setPasswordErrorMessage("")
+    setPasswordSuccessMessage("")
+    setIsPasswordSubmitting(false)
+  }, [])
+
   const loadProfileData = useCallback(async () => {
     setIsLoading(true)
     setErrorMessage("")
+    setProfile(null)
+    resetPasswordForm()
 
     try {
-      const data = await getMyProfile()
+      const data = username ? await getUserProfile(username) : await getMyProfile()
       setProfile(data)
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [resetPasswordForm, username])
 
   useEffect(() => {
     loadProfileData()
   }, [loadProfileData])
 
+  useEffect(() => {
+    if (!username || !profile || !currentUser) {
+      return
+    }
+
+    if (profile.id === currentUser.id) {
+      navigate("/profile", { replace: true })
+    }
+  }, [currentUser, navigate, profile, username])
+
   async function handleChangePassword(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (!isOwnProfileRoute) {
+      return
+    }
 
     setPasswordErrorMessage("")
     setPasswordSuccessMessage("")
@@ -111,7 +150,7 @@ export function ProfilePage() {
 
   return (
     <Layout>
-      <h1>Профиль</h1>
+      <h1>{isOwnProfileRoute ? "Профиль" : "Профиль пользователя"}</h1>
 
       {isLoading && <p>Загрузка...</p>}
 
@@ -133,34 +172,38 @@ export function ProfilePage() {
               {profile.username}
             </h2>
 
-            <p style={{ margin: "4px 0" }}>
-              <strong>Telegram login:</strong> {profile.telegram_login}
-            </p>
+            {isOwnProfileRoute && (
+              <p style={{ margin: "4px 0" }}>
+                <strong>Telegram login:</strong> {profile.telegram_login}
+              </p>
+            )}
 
             <p style={{ margin: "4px 0" }}>
               <strong>Роль:</strong> {getRoleLabel(profile.role)}
             </p>
 
-            <div style={{ marginTop: 16 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPasswordFormOpen((value) => !value)
-                  setPasswordErrorMessage("")
-                  setPasswordSuccessMessage("")
-                }}
-              >
-                {isPasswordFormOpen ? "Отменить" : "Изменить пароль"}
-              </button>
-            </div>
+            {isOwnProfileRoute && (
+              <div style={{ marginTop: 16 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPasswordFormOpen((value) => !value)
+                    setPasswordErrorMessage("")
+                    setPasswordSuccessMessage("")
+                  }}
+                >
+                  {isPasswordFormOpen ? "Отменить" : "Изменить пароль"}
+                </button>
+              </div>
+            )}
 
-            {passwordSuccessMessage && (
+            {isOwnProfileRoute && passwordSuccessMessage && (
               <p style={{ color: "green", marginTop: 12 }}>
                 {passwordSuccessMessage}
               </p>
             )}
 
-            {isPasswordFormOpen && (
+            {isOwnProfileRoute && isPasswordFormOpen && (
               <form
                 onSubmit={handleChangePassword}
                 style={{
@@ -241,7 +284,11 @@ export function ProfilePage() {
             <h2>Предложенные книги</h2>
 
             {profile.nominated_books.length === 0 ? (
-              <p>Вы пока не предлагали ни одной книги.</p>
+              <p>
+                {isOwnProfileRoute
+                  ? "Вы пока не предлагали ни одной книги."
+                  : "Пользователь пока не предлагал ни одной книги."}
+              </p>
             ) : (
               profile.nominated_books.map((item) => (
                 <ProfileBookCard key={item.book_id} item={item} />

@@ -83,5 +83,13 @@ export const router = createBrowserRouter([
           <UsersPage/>
         </ProtectedRoute>
     )
+  },
+  {
+    path: "/users/:username/profile",
+    element: (
+        <ProtectedRoute>
+          <ProfilePage/>
+        </ProtectedRoute>
+    )
   }
 ])

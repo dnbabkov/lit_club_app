@@ -1,43 +1,11 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { getCurrentUser } from "../api/auth"
 import { useAuth } from "../auth/AuthContext.tsx"
-import type { UserRead } from "../api/auth"
 
 export function NavBar() {
   const { isAuthenticated, logout } = useAuth()
   const location = useLocation()
-  const [currentUser, setCurrentUser] = useState<UserRead | null>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setCurrentUser(null)
-      return
-    }
-
-    let ignore = false
-
-    async function loadCurrentUser() {
-      try {
-        const user = await getCurrentUser()
-
-        if (!ignore) {
-          setCurrentUser(user)
-        }
-      } catch {
-        if (!ignore) {
-          setCurrentUser(null)
-        }
-      }
-    }
-
-    loadCurrentUser()
-
-    return () => {
-      ignore = true
-    }
-  }, [isAuthenticated])
 
   useEffect(() => {
     setIsMobileMenuOpen(false)
@@ -64,8 +32,6 @@ export function NavBar() {
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [isMobileMenuOpen])
-
-  const isAdmin = currentUser?.role === "admin"
 
   function closeMobileMenu() {
     setIsMobileMenuOpen(false)
@@ -133,11 +99,9 @@ export function NavBar() {
               Все книги
             </Link>
 
-            {isAdmin && (
-              <Link to="/users" className="navbar__link">
-                Пользователи
-              </Link>
-            )}
+            <Link to="/users" className="navbar__link">
+              Пользователи
+            </Link>
 
             <Link to="/profile" className="navbar__link">
               Профиль

@@ -18,6 +18,12 @@ class UserRead(BaseModel):
     telegram_login: str = Field(min_length=1, max_length=64)
     role: Roles
 
+class UserPublicRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str = Field(min_length=1, max_length=50)
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str

@@ -23,6 +23,11 @@ export type UserRead = {
   role: "member" | "moderator" | "admin"
 }
 
+export type UserPublicRead = {
+  id: number
+  username: string
+}
+
 export type UpdateUserPasswordPayload = {
   new_password: string
 }
@@ -45,6 +50,10 @@ export async function getCurrentUser(): Promise<UserRead> {
 
 export async function getUsers(): Promise<UserRead[]> {
   return get<UserRead[]>("/users/")
+}
+
+export async function getPublicUsers(): Promise<UserPublicRead[]> {
+  return get<UserPublicRead[]>("/users/public")
 }
 
 export async function changeUserPassword(

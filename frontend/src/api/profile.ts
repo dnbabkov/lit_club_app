@@ -6,8 +6,10 @@ export async function getMyProfile(): Promise<UserProfileRead> {
   return get<UserProfileRead>("/users/me/profile")
 }
 
-export async function changeMyPassword(
-  payload: UpdatePassword
-): Promise<UserRead> {
+export async function changeMyPassword(payload: UpdatePassword): Promise<UserRead> {
   return patch<UserRead>("/users/me/profile/password", payload)
+}
+
+export async function getUserProfile(username: string): Promise<UserProfileRead> {
+  return get<UserProfileRead>(`/users/${encodeURIComponent(username)}/profile`)
 }

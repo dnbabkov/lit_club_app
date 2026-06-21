@@ -158,6 +158,9 @@ class UserService:
     def get_all_users(self, db: Session):
         return self.repo.get_all_users(db=db)
 
+    def get_all_non_admin_users(self, db: Session):
+        return self.repo.get_all_non_admin_users(db=db)
+
     def update_user_password(self, db: Session, user: User, current_password: str, new_password: str):
         if not verify_password(current_password, user.password_hash):
             raise InvalidPasswordError()
