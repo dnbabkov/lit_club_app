@@ -185,6 +185,11 @@ class UserService:
     def get_all_users(self, db: Session):
         return self.repo.get_all_users(db=db)
 
+    def get_all_tg_ids(self, db: Session):
+        users = self.get_all_users(db)
+        tg_ids = ['@' + user.telegram_login for user in users]
+        return tg_ids
+
     def get_all_non_admin_users(self, db: Session):
         return self.repo.get_all_non_admin_users(db=db)
 

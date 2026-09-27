@@ -55,7 +55,7 @@ async def my_event_handler(event):
     logger.log(time + " " + username + " " + msg)
 
     if len(msg) == 0 or msg[0] != '!':
-        if event.is_private or event.mentioned or random.randint(1, 100) <= 8:
+        if event.is_private or event.mentioned or random.randint(1, 100) <= 2:
             await event.reply(mime.cite())
             logger.log(time + ' ответил на упоминание')
         return
