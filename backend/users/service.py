@@ -1,6 +1,8 @@
 from collections import defaultdict
 
 from sqlalchemy.orm import Session
+from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 
 from lit_club_app.backend.books.repository import BookRepository
 from lit_club_app.backend.meetings.repository import MeetingRepository
@@ -9,7 +11,7 @@ from lit_club_app.backend.selections.models import Nomination
 from lit_club_app.backend.selections.repository import NominationRepository, BookSelectionRepository
 from lit_club_app.backend.users.models import User
 from lit_club_app.backend.users.schemas import UserRegister, UserLogin, UserProfileRead, UserProfileBookRead, \
-    UserProfileBookRatingRead
+    UserProfileBookRatingRead, UserAdminWrite
 
 from lit_club_app.backend.common.enums import Roles
 
@@ -25,6 +27,31 @@ from lit_club_app.backend.core.exceptions import (
 )
 
 class UserService:
+    def save_admin_user(self, db: Session, payload: UserAdminWrite, user: User | None = None) -> User:
+        for field, value in payload.model_dump().items():
+            if value is None:
+                continue
+            column = getattr(User, field)
+            if field == "telegram_login":
+                column = func.lower(func.ltrim(column, "@"))
+            query = select(User.id).where(column == value)
+            if user is not None:
+                query = query.where(User.id != user.id)
+            if db.execute(query).first():
+                raise ValueError(f"Значение поля {field} уже используется другим пользователем")
+        if user is None:
+            user = User(role=Roles.MEMBER, is_active=True)
+        for field, value in payload.model_dump().items():
+            setattr(user, field, value)
+        try:
+            db.add(user)
+            db.commit()
+        except IntegrityError as exc:
+            db.rollback()
+            raise ValueError("Имя, Telegram ID или Telegram-ник уже используется") from exc
+        db.refresh(user)
+        return user
+
     def __init__(self):
         self.repo = UserRepository()
         self.nomination_repo = NominationRepository()
@@ -183,5 +210,11 @@ class UserService:
         if user is None:
             raise UserNotFoundError()
         return user
+
+    def get_user_role(self, db: Session, tg_id: str):
+        return self.repo.get_user_role(db=db, tg_id=tg_id)
+
+    def get_user_id_by_tg_id(self, db: Session, tg_id: str):
+        return self.repo.get_user_id_by_tg_id(db=db, tg_id=tg_id)
 
 user_service = UserService()

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Sequence
 
 from fastapi import UploadFile
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from lit_club_app.backend.books.models import Book
@@ -362,4 +363,10 @@ class BookService:
             raise BookFileNotFoundError()
         return book_file
 
+    def get_book_by_name(self, db: Session, book_name: str) -> Book:
+        query = select(Book).where(func.lower(Book.title)==book_name)
+        res = db.execute(query).scalar()
+        return res
+
 book_service = BookService()
+

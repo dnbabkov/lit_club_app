@@ -8,7 +8,6 @@ from alembic import context
 
 from lit_club_app.backend.core.config import settings
 from lit_club_app.backend.db.base import Base
-from lit_club_app.backend.db.session import database_url
 
 from lit_club_app.backend.users import models as users_models
 from lit_club_app.backend.books import models as books_models
@@ -16,11 +15,12 @@ from lit_club_app.backend.meetings import models as meetings_models
 from lit_club_app.backend.selections import models as selections_models
 from lit_club_app.backend.reviews import models as reviews_models
 from lit_club_app.backend.files import models as file_models
+from lit_club_app.backend.shark import models as shark_models
+from lit_club_app.backend.comics import models as comics_models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -36,19 +36,20 @@ if config.config_file_name is not None:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-database_url = URL.create(
-    drivername="postgresql+psycopg",
-    username=settings.db_user,
-    password=settings.db_password,
-    host=settings.db_host,
-    port=settings.db_port,
-    database=settings.db_name,
-)
+if config.get_main_option("sqlalchemy.url") == "driver://user:pass@localhost/dbname":
+    database_url = URL.create(
+        drivername="postgresql+psycopg",
+        username=settings.db_user,
+        password=settings.db_password,
+        host=settings.db_host,
+        port=settings.db_port,
+        database=settings.db_name,
+    )
 
-config.set_main_option(
-    "sqlalchemy.url",
-    database_url.render_as_string(hide_password=False)
-)
+    config.set_main_option(
+        "sqlalchemy.url",
+        database_url.render_as_string(hide_password=False)
+    )
 
 target_metadata = Base.metadata
 
@@ -83,15 +84,34 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = config.attributes.get("connection")
+
+    if connectable is None:
+        connectable = engine_from_config(
+            config.get_section(config.config_ini_section, {}),
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+        )
+
+        with connectable.connect() as connection:
+            context.configure(
+                connection=connection,
+                target_metadata=target_metadata,
+                compare_type=True,
+                transaction_per_migration=True,
+            )
+
+            with context.begin_transaction():
+                context.run_migrations()
+
+        return
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata, compare_type=True
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            transaction_per_migration=True,
         )
 
         with context.begin_transaction():

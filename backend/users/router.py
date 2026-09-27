@@ -1,41 +1,72 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from lit_club_app.backend.api.dependencies import get_db, get_current_user
 from lit_club_app.backend.common.enums import Roles
 from lit_club_app.backend.core.security import create_access_token
+from lit_club_app.backend.core.config import settings
+from lit_club_app.backend.core.telegram import InvalidTelegramData, validate_init_data
+from lit_club_app.backend.users.repository import UserRepository
 from lit_club_app.backend.users.models import User
-from lit_club_app.backend.users.schemas import UserRegister, UserLogin, UserRead, TokenResponse, UserProfileRead, \
-    UpdatePassword, UpdatePasswordAdmin, UserPublicRead
+from lit_club_app.backend.users.schemas import TelegramLogin, UserRead, TokenResponse, UserProfileRead, UserPublicRead, UserAdminWrite, UserAdminRead
 from lit_club_app.backend.users.service import user_service
+from lit_club_app.backend.shark.router import get_profile_achievements, require_visible_profile
+from lit_club_app.backend.shark.schemas import AchievementRead
 from lit_club_app.backend.core.exceptions import (
-    UsernameAlreadyExistsError,
-    TelegramLoginAlreadyExistsError,
     UserNotFoundError,
-    InvalidPasswordError, EmptyTelegramLoginError, SamePasswordError, NotEnoughPermissionsError,
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
+logger = logging.getLogger(__name__)
 
-@router.post("/register", response_model=TokenResponse, status_code=201)
-def register_user(payload: UserRegister, db: Session = Depends(get_db)):
-    try:
-        user = user_service.register_user(db=db, user_data=payload)
-        access_token = create_access_token({"sub": str(user.id)})
-        return TokenResponse(access_token=access_token, token_type="bearer")
-    except (UsernameAlreadyExistsError, TelegramLoginAlreadyExistsError, EmptyTelegramLoginError) as e:
-        raise HTTPException(status_code=409, detail=str(e))
 
-@router.post("/login", response_model=TokenResponse)
-def login_user(payload: UserLogin, db: Session = Depends(get_db)):
+def require_admin(user: User = Depends(get_current_user)) -> User:
+    if user.role != Roles.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can manage users")
+    return user
+
+
+@router.post("/", response_model=UserAdminRead, status_code=201, dependencies=[Depends(require_admin)])
+def create_user(payload: UserAdminWrite, db: Session = Depends(get_db)):
     try:
-        user = user_service.authenticate_user(db=db, login_data=payload)
-        access_token = create_access_token({"sub": str(user.id)})
-        return TokenResponse(access_token=access_token, token_type="bearer")
-    except (UserNotFoundError, InvalidPasswordError):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    except EmptyTelegramLoginError:
-        raise HTTPException(status_code=409, detail="Empty TG tag")
+        return user_service.save_admin_user(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@router.patch("/{user_id}", response_model=UserAdminRead, dependencies=[Depends(require_admin)])
+def edit_user(user_id: int, payload: UserAdminWrite, db: Session = Depends(get_db)):
+    user = UserRepository().get_by_id(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    try:
+        return user_service.save_admin_user(db, payload, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+@router.post("/auth/telegram", response_model=TokenResponse)
+def login_telegram(payload: TelegramLogin, db: Session = Depends(get_db)):
+    token = settings.telegram_bot_token
+    if token is None or not token.get_secret_value().strip():
+        raise HTTPException(status_code=503, detail="Telegram authentication is not configured")
+    try:
+        tg_id = validate_init_data(payload.init_data, token.get_secret_value(),
+                                   settings.telegram_init_data_max_age_seconds)
+    except InvalidTelegramData as exc:
+        logger.warning(
+            "Telegram login rejected: reason=%s age_seconds=%s max_age_seconds=%s",
+            exc.reason, exc.age_seconds, settings.telegram_init_data_max_age_seconds,
+        )
+        raise HTTPException(status_code=401, detail="Invalid or expired Telegram data")
+    user = UserRepository().get_by_tg_id(db, tg_id)
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=403, detail="Access not granted")
+    access_token = create_access_token({
+        "sub": str(user.id), "auth_method": "telegram", "tg_id": str(tg_id),
+    })
+    return TokenResponse(access_token=access_token, token_type="bearer")
 
 @router.get("/me", response_model=UserRead, status_code=200)
 def get_user_me(current_user: User = Depends(get_current_user)):
@@ -43,6 +74,18 @@ def get_user_me(current_user: User = Depends(get_current_user)):
         return current_user
     except:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@router.get("/me/profile/achievements", response_model=list[AchievementRead])
+def my_profile_achievements(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return get_profile_achievements(db, current_user)
+
+
+@router.get("/{username}/profile/achievements", response_model=list[AchievementRead])
+def user_profile_achievements(username: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    owner = UserRepository().get_by_username(db, username)
+    require_visible_profile(owner, current_user)
+    return get_profile_achievements(db, owner)
+
 
 @router.get("/me/profile", response_model=UserProfileRead, status_code=200)
 def get_user_profile(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -53,7 +96,7 @@ def get_user_profile(db: Session = Depends(get_db), current_user: User = Depends
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
-@router.get("/", response_model=list[UserRead], status_code=200, dependencies=[Depends(get_current_user)])
+@router.get("/", response_model=list[UserAdminRead], status_code=200, dependencies=[Depends(require_admin)])
 def get_all_users(db: Session = Depends(get_db)):
     try:
         return user_service.get_all_users(db=db)
@@ -64,17 +107,6 @@ def get_all_users(db: Session = Depends(get_db)):
 def get_all_users_public(db: Session = Depends(get_db)):
     try:
         return user_service.get_all_non_admin_users(db=db)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
-
-@router.patch("/me/profile/password", response_model=UserRead, status_code=200)
-def update_user_password(payload: UpdatePassword, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    try:
-        return user_service.update_user_password(db=db, user=user, current_password=payload.current_password, new_password=payload.new_password)
-    except InvalidPasswordError:
-        raise HTTPException(status_code=401, detail="Incorrect password")
-    except SamePasswordError:
-        raise HTTPException(status_code=409, detail="New password can't be the same as the old password")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
@@ -89,15 +121,3 @@ def get_other_user_profile(username: str, db: Session = Depends(get_db), current
         raise HTTPException(status_code=404, detail="User not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
-
-@router.patch("/{user_id}/profile/password", response_model=UserRead, status_code=200)
-def update_user_password_admin(payload: UpdatePasswordAdmin, user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    try:
-        return user_service.update_user_password_admin(db=db, user=current_user, target_user_id=user_id, new_password=payload.new_password)
-    except NotEnoughPermissionsError:
-        raise HTTPException(status_code=403, detail="Only admin can change others' passwords!")
-    except UserNotFoundError:
-        raise HTTPException(status_code=404, detail="User not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
-

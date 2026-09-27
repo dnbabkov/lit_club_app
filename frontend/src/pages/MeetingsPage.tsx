@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Layout } from "../components/Layout"
-import { useAuth } from "../auth/AuthContext"
+import { useAuth } from "../auth/useAuth"
 import { ApiError } from "../api/http"
 import { getBooks } from "../api/books"
 import { finishMeeting, getMeetings, startNextMeeting } from "../api/meetings"

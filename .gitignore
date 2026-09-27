@@ -68,3 +68,12 @@ temp/
 
 # Uploaded files
 backend/uploads/
+backend/comic_uploads/
+
+AGENTS.md
+*.session
+tg_bot/achievements/
+tg_bot/logs/
+tg_bot/mime.txt
+dump/
+*.session-journal

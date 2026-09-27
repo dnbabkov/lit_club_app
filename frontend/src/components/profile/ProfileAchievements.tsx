@@ -1,0 +1,70 @@
+import { useEffect, useState } from "react"
+import { getAchievementImage, getMyAchievements, getUserAchievements, type AchievementRead } from "../../api/achievements"
+
+function AchievementCard({ achievement }: { achievement: AchievementRead }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [error, setError] = useState("")
+  const [attempt, setAttempt] = useState(0)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let objectUrl: string | undefined
+    getAchievementImage(achievement.image_url, controller.signal).then(blob => {
+      if (controller.signal.aborted) return
+      objectUrl = URL.createObjectURL(blob)
+      setUrl(objectUrl)
+    }).catch(error => {
+      if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Не удалось загрузить ачивку")
+    })
+    return () => {
+      controller.abort()
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [achievement.image_url, attempt])
+
+  return <article style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12, minWidth: 0, display: "grid", gridTemplateColumns: "minmax(0, 3fr) minmax(80px, 1fr)", gap: 12, alignItems: "center" }}>
+    <div style={{ minWidth: 0 }}>
+    {error ? <div role="alert">
+      <p>{error}</p>
+      <button type="button" onClick={() => { setError(""); setUrl(null); setAttempt(value => value + 1) }}>Повторить</button>
+    </div> : url ? <img
+      src={url}
+      alt={`Ачивка №${achievement.id}: название и описание на изображении`}
+      style={{ display: "block", width: "100%", height: "auto", borderRadius: 8 }}
+      onError={() => setError("Не удалось показать изображение ачивки")}
+    /> : <p role="status">Загрузка ачивки…</p>}
+    </div>
+    <div style={{ minWidth: 0, textAlign: "center", overflowWrap: "anywhere" }}>
+      <div aria-hidden="true" style={{ width: 48, height: 48, borderRadius: "50%", border: "1px solid #ddd", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, margin: "0 auto 8px" }}>
+        {achievement.giver.username.trim().charAt(0).toUpperCase() || "?"}
+      </div>
+      <small style={{ display: "block", marginBottom: 4 }}>Выдал(а)</small>
+      <strong>{achievement.giver.username}</strong>
+    </div>
+  </article>
+}
+
+export function ProfileAchievements({ username }: { username?: string }) {
+  const [achievements, setAchievements] = useState<AchievementRead[] | null>(null)
+  const [error, setError] = useState("")
+  const [attempt, setAttempt] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    const request = username ? getUserAchievements(username) : getMyAchievements()
+    request.then(data => { if (active) setAchievements(data) })
+      .catch(error => { if (active) setError(error instanceof Error ? error.message : "Не удалось загрузить ачивки") })
+    return () => { active = false }
+  }, [username, attempt])
+
+  return <section aria-labelledby="profile-achievements-title" style={{ marginBottom: 24 }}>
+    <h1 id="profile-achievements-title">Достижения{achievements?.length ? ` (${achievements.length})` : ""}</h1>
+    {username && <p>{username}</p>}
+    {error ? <div role="alert"><p>{error}</p><button type="button" onClick={() => { setError(""); setAttempt(value => value + 1) }}>Повторить</button></div>
+      : achievements === null ? <p role="status">Загрузка достижений…</p>
+      : achievements.length === 0 ? <p>{username ? "У пользователя пока нет достижений." : "У вас пока нет достижений."}</p>
+      : <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 960, margin: "0 auto" }}>
+        {achievements.map(achievement => <AchievementCard key={achievement.id} achievement={achievement} />)}
+      </div>}
+  </section>
+}

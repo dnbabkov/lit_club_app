@@ -16,12 +16,7 @@ export type UserProfileBookRead = {
 export type UserProfileRead = {
   id: number
   username: string
-  telegram_login: string
+  telegram_login: string | null
   role: "member" | "moderator" | "admin"
   nominated_books: UserProfileBookRead[]
-}
-
-export type UpdatePassword = {
-  current_password: string
-  new_password: string
 }

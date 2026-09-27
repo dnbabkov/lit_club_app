@@ -13,6 +13,8 @@ from lit_club_app.backend.users import models as users_models  # noqa: F401
 from lit_club_app.backend.books import models as books_models  # noqa: F401
 from lit_club_app.backend.meetings import models as meetings_models  # noqa: F401
 from lit_club_app.backend.selections import models as selections_models  # noqa: F401
+from lit_club_app.backend.comics import models as comics_models  # noqa: F401
+from lit_club_app.backend.shark import models as achievement_models  # noqa: F401
 
 
 TEST_DATABASE_URL = "sqlite://"

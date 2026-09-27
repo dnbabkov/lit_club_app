@@ -1,98 +1,75 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
-import {
-  loginUser,
-  registerUser,
-  getCurrentUser,
-  type LoginPayload,
-  type RegisterPayload,
-  type UserRead,
-} from "../api/auth"
-import { getToken, setToken, removeToken } from "./token"
+import { useEffect, useState, type ReactNode } from "react"
+import { getCurrentUser, loginTelegram } from "../api/auth"
+import { ApiError } from "../api/http"
+import { AuthContext, type AuthContextValue, type AuthStatus } from "./context"
+import { clearLegacyToken, onSessionFailure, removeToken, setToken } from "./token"
+import { getTelegramApp } from "./telegram"
 
-type AuthContextValue = {
-  token: string | null
-  user: UserRead | null
-  isAuthenticated: boolean
-  login: (payload: LoginPayload) => Promise<void>
-  register: (payload: RegisterPayload) => Promise<void>
-  logout: () => void
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
-
-type AuthProviderProps = {
-  children: ReactNode
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [token, setTokenState] = useState<string | null>(() => getToken())
-  const [user, setUser] = useState<UserRead | null>(null)
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<Pick<AuthContextValue, "user" | "status">>({
+    user: null, status: "loading",
+  })
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
-    async function loadUser() {
-      if (!token) {
-        setUser(null)
-        return
-      }
+    let active = true
+    let signingIn = false
+    const telegram = getTelegramApp()
+    clearLegacyToken()
+    removeToken()
+    telegram?.ready()
+    telegram?.expand()
 
+    async function signIn() {
+      if (signingIn || !active) return
+      signingIn = true
+      setState({ user: null, status: "loading" })
+      removeToken()
       try {
-        const currentUser = await getCurrentUser()
-        setUser(currentUser)
-      } catch {
+        if (!telegram?.initData) {
+          setState({ user: null, status: "outside" })
+          return
+        }
+        const session = await loginTelegram(telegram.initData)
+        if (!active) return
+        // Do not publish the token until the account check has also succeeded.
+        const user = await getCurrentUser(session.access_token)
+        if (!active) return
+        setToken(session.access_token)
+        setState({ user, status: "authenticated" })
+      } catch (error) {
+        if (!active) return
+        const status: AuthStatus = error instanceof ApiError && error.status === 403
+          ? "denied"
+          : error instanceof ApiError && error.status === 401 ? "expired" : "error"
         removeToken()
-        setTokenState(null)
-        setUser(null)
+        setState({ user: null, status })
+      } finally {
+        signingIn = false
       }
     }
 
-    loadUser()
-  }, [token])
+    const unsubscribe = onSessionFailure(status => {
+      if (status === 403) setState({ user: null, status: "denied" })
+      else void signIn()
+    })
+    // Scheduling also prevents the discarded StrictMode effect from sending a login.
+    void Promise.resolve().then(signIn)
+    return () => {
+      active = false
+      unsubscribe()
+      removeToken()
+    }
+  }, [attempt])
 
-  async function login(payload: LoginPayload): Promise<void> {
-    const data = await loginUser(payload)
-    setToken(data.access_token)
-    setTokenState(data.access_token)
-
-    const currentUser = await getCurrentUser()
-    setUser(currentUser)
+  function retry() {
+    setState({ user: null, status: "loading" })
+    setAttempt(value => value + 1)
   }
 
-  async function register(payload: RegisterPayload): Promise<void> {
-    const data = await registerUser(payload)
-    setToken(data.access_token)
-    setTokenState(data.access_token)
-
-    const currentUser = await getCurrentUser()
-    setUser(currentUser)
-  }
-
-  function logout(): void {
-    removeToken()
-    setTokenState(null)
-    setUser(null)
-  }
-
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      token,
-      user,
-      isAuthenticated: token !== null,
-      login,
-      register,
-      logout,
-    }),
-    [token, user]
+  return (
+    <AuthContext.Provider value={{ ...state, isAuthenticated: state.status === "authenticated", retry }}>
+      {children}
+    </AuthContext.Provider>
   )
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext)
-
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider")
-  }
-
-  return context
 }

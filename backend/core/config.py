@@ -1,4 +1,5 @@
 from pathlib import Path
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +18,8 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str
     access_token_expire_minutes: int
+    telegram_bot_token: SecretStr | None = None
+    telegram_init_data_max_age_seconds: int = Field(default=300, ge=1)
 
     upload_dir: Path = BACKEND_DIR / "uploads"
     public_uploads_url: str = "/uploads"
@@ -29,5 +32,24 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
     )
 
+    log_file: str
+    old_log_file: str
+
+
+    log_file: str
+    old_log_file: str
+    max_log_size: str
+
+    mime_file: str
+    max_mime_size: str
+
+    test_db_user: str
+    test_db_password: str
+    test_db_host: str
+    test_db_port: str
+    test_db_name: str
+
+    api_id: str
+    api_hash: str
 
 settings = Settings()

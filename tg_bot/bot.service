@@ -1,0 +1,14 @@
+[Unit]
+Description=vk-bot
+After=multi-user.target
+
+[Service]
+User=root
+Group=root
+Type=simple
+Restart=always
+ExecStart=/usr/bin/python3 /home/niger/tg_bot/telegram.py
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

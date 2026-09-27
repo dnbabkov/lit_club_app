@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "react"
 import { Layout } from "../components/Layout"
-import { useAuth } from "../auth/AuthContext"
+import { useAuth } from "../auth/useAuth"
 import { ApiError } from "../api/http"
 import {
   getCurrentSelection,

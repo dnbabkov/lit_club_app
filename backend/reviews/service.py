@@ -1,4 +1,5 @@
 from typing import Sequence
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from lit_club_app.backend.books.repository import BookRepository
@@ -57,5 +58,9 @@ class ReviewService:
 
     def get_reviews_for_books(self, db: Session, book_ids: list[int]) -> Sequence[Review]:
         return self.review_repo.get_all_for_books(db=db, book_ids=book_ids)
+
+    def get_rating(self, db: Session):
+        rating = self.review_repo.get_rating(db)
+        return rating
 
 review_service = ReviewService()

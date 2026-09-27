@@ -1,14 +1,6 @@
-import { Navigate } from "react-router-dom"
-import { useAuth } from "../auth/AuthContext"
 import { Layout } from "../components/Layout.tsx";
 
 export function HomePage(){
-    const { isAuthenticated } = useAuth()
-
-    if (!isAuthenticated){
-        return <Navigate to="/login" replace />
-    }
-
     return (
     <Layout>
       <h1>Главная</h1>

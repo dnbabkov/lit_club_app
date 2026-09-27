@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { useAuth } from "../auth/AuthContext.tsx"
+import { useAuth } from "../auth/useAuth"
 
 export function NavBar() {
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated } = useAuth()
   const location = useLocation()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
-  useEffect(() => {
-    setIsMobileMenuOpen(false)
-  }, [location.pathname])
+  const [menuPath, setMenuPath] = useState<string | null>(null)
+  const isMobileMenuOpen = menuPath === location.pathname
 
   useEffect(() => {
     if (!isMobileMenuOpen) {
@@ -21,7 +18,7 @@ export function NavBar() {
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setIsMobileMenuOpen(false)
+        setMenuPath(null)
       }
     }
 
@@ -34,12 +31,7 @@ export function NavBar() {
   }, [isMobileMenuOpen])
 
   function closeMobileMenu() {
-    setIsMobileMenuOpen(false)
-  }
-
-  function handleLogout() {
-    closeMobileMenu()
-    logout()
+    setMenuPath(null)
   }
 
   return (
@@ -54,7 +46,7 @@ export function NavBar() {
         aria-label={isMobileMenuOpen ? "Закрыть меню" : "Открыть меню"}
         aria-expanded={isMobileMenuOpen}
         aria-controls="site-navigation"
-        onClick={() => setIsMobileMenuOpen((isOpen) => !isOpen)}
+        onClick={() => setMenuPath(isMobileMenuOpen ? null : location.pathname)}
       >
         <span />
         <span />
@@ -69,6 +61,7 @@ export function NavBar() {
       />
 
       <nav
+        onClick={closeMobileMenu}
         id="site-navigation"
         className={`navbar__links${isMobileMenuOpen ? " navbar__links--open" : ""}`}
       >
@@ -98,6 +91,9 @@ export function NavBar() {
             <Link to="/books" className="navbar__link">
               Все книги
             </Link>
+            <Link to="/comics" className="navbar__link">
+              Комикс
+            </Link>
 
             <Link to="/users" className="navbar__link">
               Пользователи
@@ -106,20 +102,8 @@ export function NavBar() {
             <Link to="/profile" className="navbar__link">
               Профиль
             </Link>
-            <button type="button" className="navbar__link-button" onClick={handleLogout}>
-              Выйти
-            </button>
           </>
-        ) : (
-          <>
-            <Link to="/login" className="navbar__link">
-              Войти
-            </Link>
-            <Link to="/register" className="navbar__link">
-              Регистрация
-            </Link>
-          </>
-        )}
+        ) : null}
       </nav>
     </header>
   )

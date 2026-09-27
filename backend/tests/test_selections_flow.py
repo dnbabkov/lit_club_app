@@ -5,25 +5,13 @@ from lit_club_app.backend.books.models import Book
 from lit_club_app.backend.meetings.models import Meeting
 from lit_club_app.backend.selections.models import BookSelection, WinnerSelectionSession
 from lit_club_app.backend.common.enums import Roles, MeetingStatus, BookSelectionStatus, WinnerSelectionStatus
+from lit_club_app.backend.tests.auth_helpers import register_user
 
 import pytest
 
 
 def auth_headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
-
-
-def register_user(client, username: str, telegram_login: str, password: str = "1234") -> str:
-    response = client.post(
-        "/users/register",
-        json={
-            "username": username,
-            "telegram_login": telegram_login,
-            "password": password,
-        },
-    )
-    assert response.status_code == 201, response.text
-    return response.json()["access_token"]
 
 
 def promote_to_moderator(db_session, telegram_login: str) -> None:

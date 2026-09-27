@@ -17,14 +17,14 @@ export class ApiError extends Error {
     }
 }
 
-import { getToken } from "../auth/token"
+import { getToken, reportSessionFailure } from "../auth/token"
 
-async function request<T>(
+export async function request<T>(
     path: string,
     options: RequestOptions = {}
 ): Promise<T> {
     const method = options.method ?? "GET"
-    const token = options.token ?? getToken()
+    const token = options.token === undefined ? getToken() : options.token
 
     const headers: Record<string, string> = {}
 
@@ -53,6 +53,7 @@ async function request<T>(
             errorMessage = "No JSON"
         }
 
+        reportSessionFailure(token, response.status, errorMessage)
         throw new ApiError(response.status, errorMessage)
     }
 
@@ -90,6 +91,7 @@ export async function uploadFormData<T>(path: string, formData: FormData): Promi
             errorMessage = "No JSON"
         }
 
+        reportSessionFailure(token, response.status, errorMessage)
         throw new ApiError(response.status, errorMessage)
     }
     if (response.status === 204) {

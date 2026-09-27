@@ -30,6 +30,8 @@ def get_current_user(db: Session = Depends(get_db), credentials: HTTPAuthorizati
     except InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    if payload.get("auth_method") != "telegram":
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     subject = payload.get("sub")
     if subject is None:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -43,5 +45,10 @@ def get_current_user(db: Session = Depends(get_db), credentials: HTTPAuthorizati
 
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if user.tg_id is None or payload.get("tg_id") != str(user.tg_id):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Access not granted")
 
     return user

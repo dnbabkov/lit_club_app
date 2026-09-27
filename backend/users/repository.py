@@ -26,6 +26,11 @@ class UserRepository:
         result = db.execute(statement)
         return result.scalar_one_or_none()
 
+    def get_by_tg_id(self, db: Session, tg_id: int) -> User | None:
+        statement = select(User).where(User.tg_id == tg_id)
+        result = db.execute(statement)
+        return result.scalar_one_or_none()
+
     def create(self, db: Session, username: str, telegram_login: str, password_hash: str, role: Roles = Roles.MEMBER) -> User:
 
         user = User(username=username, telegram_login=telegram_login, password_hash=password_hash, role=role)
@@ -61,3 +66,13 @@ class UserRepository:
         except Exception:
             db.rollback()
             raise
+
+    def get_user_role(self, db: Session, tg_id: str):
+        statement = select(User.role).where(User.tg_id == tg_id)
+        result = db.execute(statement)
+        return result.scalars().all()
+
+    def get_user_id_by_tg_id(self, db: Session, tg_id: str):
+        statement = select(User.id).where(User.tg_id == tg_id)
+        result = db.execute(statement)
+        return result.scalars().all()[0]

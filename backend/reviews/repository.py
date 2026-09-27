@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from lit_club_app.backend.core.exceptions import BookNotFoundError
 from lit_club_app.backend.reviews.models import Review
+from lit_club_app.backend.books.models import Book
 
 
 class ReviewRepository:
@@ -69,3 +70,16 @@ class ReviewRepository:
         )
         result = db.execute(statement)
         return result.scalars().all()
+
+    def get_rating(self, db: Session):
+        stmt = (
+            select(
+                Book.title,
+                func.avg(Review.rating).label("avg_rating")
+            )
+            .join(Review, Review.book_id == Book.id)
+            .group_by(Book.id, Book.title)
+            .order_by(func.avg(Review.rating).desc())
+        )
+        result = db.execute(stmt)
+        return result.all()

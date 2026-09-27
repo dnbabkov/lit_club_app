@@ -1,15 +1,4 @@
-import { get, patch, post } from "./http"
-
-export type RegisterPayload = {
-  username: string
-  telegram_login: string
-  password: string
-}
-
-export type LoginPayload = {
-  telegram_login: string
-  password: string
-}
+import { get, request, post, patch } from "./http"
 
 export type TokenResponse = {
   access_token: string
@@ -19,7 +8,7 @@ export type TokenResponse = {
 export type UserRead = {
   id: number
   username: string
-  telegram_login: string
+  telegram_login: string | null
   role: "member" | "moderator" | "admin"
 }
 
@@ -28,37 +17,31 @@ export type UserPublicRead = {
   username: string
 }
 
-export type UpdateUserPasswordPayload = {
-  new_password: string
+export async function loginTelegram(initData: string): Promise<TokenResponse> {
+  return request<TokenResponse>("/users/auth/telegram", {
+    method: "POST", body: { init_data: initData }, token: null,
+  })
 }
 
-export async function registerUser(
-  payload: RegisterPayload
-): Promise<TokenResponse> {
-  return post<TokenResponse>("/users/register", payload)
+export async function getCurrentUser(token?: string): Promise<UserRead> {
+  return request<UserRead>("/users/me", { token })
 }
 
-export async function loginUser(
-  payload: LoginPayload
-): Promise<TokenResponse> {
-  return post<TokenResponse>("/users/login", payload)
+export type UserAdminRead = UserRead & { tg_id: string | null }
+export type UserAdminWrite = { username: string; tg_id: string | null; telegram_login: string | null }
+
+export async function createUser(payload: UserAdminWrite): Promise<UserAdminRead> {
+  return post<UserAdminRead>("/users/", payload)
 }
 
-export async function getCurrentUser(): Promise<UserRead> {
-  return get<UserRead>("/users/me")
+export async function updateUser(id: number, payload: UserAdminWrite): Promise<UserAdminRead> {
+  return patch<UserAdminRead>(`/users/${id}`, payload)
 }
 
-export async function getUsers(): Promise<UserRead[]> {
-  return get<UserRead[]>("/users/")
+export async function getUsers(): Promise<UserAdminRead[]> {
+  return get<UserAdminRead[]>("/users/")
 }
 
 export async function getPublicUsers(): Promise<UserPublicRead[]> {
   return get<UserPublicRead[]>("/users/public")
-}
-
-export async function changeUserPassword(
-  userId: number,
-  payload: UpdateUserPasswordPayload
-): Promise<UserRead> {
-  return patch<UserRead>(`/users/${userId}/profile/password`, payload)
 }
