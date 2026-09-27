@@ -142,7 +142,12 @@ async def handle_service_msg(msg, event, client, db) -> service_ans:
         return service_ans(update_tg_id(content))
 
     elif service_msg == '!орда':
-        return service_ans(user_service.get_all_tg_ids(db))
+        ids_list = user_service.get_all_tg_ids(db)
+        ids = ''
+        for user_id in ids_list:
+            ids += user_id + ' '
+
+        return service_ans(ids)
 
     elif service_msg == '!помощь':
         msg = user_help_str
