@@ -1,9 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { getCurrentUser, loginTelegram } from "../api/auth"
+import { getCurrentUser, loginDev, loginTelegram } from "../api/auth"
 import { ApiError } from "../api/http"
 import { AuthContext, type AuthContextValue, type AuthStatus } from "./context"
 import { clearLegacyToken, onSessionFailure, removeToken, setToken } from "./token"
 import { getTelegramApp } from "./telegram"
+
+const devAuthEnabled = import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH === "true"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Pick<AuthContextValue, "user" | "status">>({
@@ -26,11 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState({ user: null, status: "loading" })
       removeToken()
       try {
-        if (!telegram?.initData) {
+        if (!devAuthEnabled && !telegram?.initData) {
           setState({ user: null, status: "outside" })
           return
         }
-        const session = await loginTelegram(telegram.initData)
+        const session = devAuthEnabled
+          ? await loginDev()
+          : await loginTelegram(telegram!.initData)
         if (!active) return
         // Do not publish the token until the account check has also succeeded.
         const user = await getCurrentUser(session.access_token)

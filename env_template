@@ -25,3 +25,9 @@ TEST_DB_NAME=test_base
 API_ID=
 API_HASH=
 TELEGRAM_BOT_TOKEN=
+
+# Local development login (disabled by default).
+APP_ENV=production
+DEV_AUTH_ENABLED=false
+# Set to the ID printed by python -m lit_club_app.backend.dev_user:
+# DEV_AUTH_USER_ID=18

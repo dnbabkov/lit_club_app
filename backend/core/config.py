@@ -1,5 +1,5 @@
 from pathlib import Path
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +9,20 @@ ENV_FILE = BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
+    app_env: str = "production"
+    dev_auth_enabled: bool = False
+    dev_auth_user_id: int | None = Field(default=None, ge=1)
+
+    @property
+    def dev_auth_allowed(self) -> bool:
+        return self.app_env == "development" and self.dev_auth_enabled
+
+    @model_validator(mode="after")
+    def validate_dev_auth(self):
+        if self.dev_auth_enabled and self.app_env != "development":
+            raise ValueError("DEV_AUTH_ENABLED requires APP_ENV=development")
+        return self
+
     db_host: str
     db_port: int
     db_name: str

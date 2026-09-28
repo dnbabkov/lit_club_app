@@ -17,6 +17,10 @@ export type UserPublicRead = {
   username: string
 }
 
+export async function loginDev(): Promise<TokenResponse> {
+  return request<TokenResponse>("/users/auth/dev", { method: "POST", token: null })
+}
+
 export async function loginTelegram(initData: string): Promise<TokenResponse> {
   return request<TokenResponse>("/users/auth/telegram", {
     method: "POST", body: { init_data: initData }, token: null,

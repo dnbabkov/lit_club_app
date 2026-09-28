@@ -77,3 +77,5 @@ tg_bot/logs/
 tg_bot/mime.txt
 dump/
 *.session-journal
+
+.opencode/

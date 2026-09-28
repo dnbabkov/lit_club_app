@@ -13,6 +13,8 @@ export type NominationRead = {
   book_id: number
   title: string
   author: string
+  epoch: string | null
+  meeting_date: string | null
   comment: string | null
   book_source: NominationBookSource
 }
@@ -45,6 +47,8 @@ export type NominationExistingBookCreatePayload = {
 export type NominationNewBookCreatePayload = {
   title: string
   author: string
+  epoch: string | null
+  meeting_date: string | null
   comment: string | null
 }
 
@@ -55,11 +59,15 @@ export type NominationExistingBookChangePayload = {
 export type NominationNewBookChangePayload = {
   title: string
   author: string
+  epoch?: string | null
+  meeting_date?: string | null
 }
 
 export type NominationBookUpdatePayload = {
   title: string
   author: string
+  epoch?: string | null
+  meeting_date?: string | null
 }
 
 export type NominationCommentUpdatePayload = {

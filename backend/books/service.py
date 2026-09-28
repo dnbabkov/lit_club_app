@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from lit_club_app.backend.books.models import Book
-from lit_club_app.backend.books.repository import BookRepository
+from lit_club_app.backend.books.repository import BookRepository, EPOCH_UNSET, MEETING_DATE_UNSET
 from lit_club_app.backend.books.schemas import BookWithReviewsRead, BookRead, BooksRead, CanDeleteBookRead
 from lit_club_app.backend.common.enums import Roles, UploadedFileTypes
 from lit_club_app.backend.core.config import settings
@@ -52,11 +52,11 @@ class BookService:
 
         return has_delete_rights and not is_nominated and not has_won
 
-    def create_book(self, db: Session, title: str, author: str, description: str | None, user_id: int) -> Book:
+    def create_book(self, db: Session, title: str, author: str, description: str | None, user_id: int, epoch: str | None = None, meeting_date=None) -> Book:
         book = self.book_repo.get_by_norm_title_and_author(db=db, norm_title=title.strip().lower(), norm_author=author.strip().lower())
         if book is not None:
             raise BookAlreadyExistsError()
-        return self.book_repo.create_book(db=db, title=title, author=author, description=description, user_id=user_id)
+        return self.book_repo.create_book(db=db, title=title, author=author, description=description, user_id=user_id, epoch=epoch, meeting_date=meeting_date)
 
     def get_book(self, db: Session, book_id: int) -> Book:
         book = self.book_repo.get_by_id(db=db, book_id=book_id)
@@ -90,13 +90,13 @@ class BookService:
 
         return results
 
-    def update_book_fields(self, db: Session, title: str, author: str, book_id: int, user: User) -> Book:
+    def update_book_fields(self, db: Session, title: str, author: str, book_id: int, user: User, epoch: str | None | object = EPOCH_UNSET, meeting_date = MEETING_DATE_UNSET) -> Book:
         book = self.book_repo.get_by_id(db=db, book_id=book_id)
         if book is None:
             raise BookNotFoundError()
         if book.user_id is not None and book.user_id != user.id and user.role != Roles.ADMIN and user.role != Roles.MODERATOR:
             raise NotYourBookError()
-        book = self.book_repo.update_book_fields(db=db, title=title, author=author, book_id=book_id)
+        book = self.book_repo.update_book_fields(db=db, title=title, author=author, book_id=book_id, epoch=epoch, meeting_date=meeting_date)
         return book
 
     def delete_book(self, db: Session, book_id: int, user: User) -> None:
@@ -191,6 +191,8 @@ class BookService:
                 "id": book.id,
                 "title": book.title,
                 "author": book.author,
+                "epoch": book.epoch,
+                "meeting_date": book.meeting_date,
                 "description": book.description,
                 "user_id": book.user_id,
 
@@ -369,4 +371,3 @@ class BookService:
         return res
 
 book_service = BookService()
-

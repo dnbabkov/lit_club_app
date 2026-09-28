@@ -4,6 +4,8 @@ export type BookRead = {
   id: number
   title: string
   author: string
+  epoch: string | null
+  meeting_date: string | null
   description: string | null
   user_id: number | null
 
@@ -37,6 +39,8 @@ export type BookCreatePayload = {
   title: string
   author: string
   description: string | null
+  epoch: string | null
+  meeting_date: string | null
 }
 
 export type BookChangeDescriptionPayload = {
@@ -46,6 +50,8 @@ export type BookChangeDescriptionPayload = {
 export type BookUpdateFieldsPayload = {
   title: string
   author: string
+  epoch?: string | null
+  meeting_date?: string | null
 }
 
 export type BookAssignUserPayload = {

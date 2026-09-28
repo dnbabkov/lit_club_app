@@ -48,6 +48,14 @@ export async function updateBookFields(
     author: payload.author,
   })
 
+  if (payload.epoch !== undefined) {
+    searchParams.set("epoch", payload.epoch ?? "")
+  }
+
+  if (payload.meeting_date !== undefined) {
+    searchParams.set("meeting_date", payload.meeting_date ?? "")
+  }
+
   return patch<BookRead>(`/books/${bookId}?${searchParams.toString()}`, {})
 }
 

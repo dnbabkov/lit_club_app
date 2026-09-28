@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from datetime import date
+
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -6,6 +8,7 @@ from lit_club_app.backend.api.dependencies import get_db, get_current_user
 from lit_club_app.backend.books.schemas import BooksRead, BookRead, BookChangeDescription, BookCreate, \
     BookWithReviewsRead, BookAssignUser, CanDeleteBookRead
 from lit_club_app.backend.books.service import book_service
+from lit_club_app.backend.books.repository import EPOCH_UNSET, MEETING_DATE_UNSET
 from lit_club_app.backend.common.enums import Roles
 from lit_club_app.backend.core.exceptions import BookNotFoundError, EmptyDescriptionError, BookAlreadyExistsError, \
     NotYourBookError, UserNotFoundError, AlreadyAssignedError, CantDeleteNominatedBookError, ForbiddenFileTypeError, \
@@ -67,7 +70,7 @@ def change_description(book_id: int, payload: BookChangeDescription, db: Session
 @router.post("/", response_model=BookRead)
 def create_book(payload: BookCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     try:
-        book = book_service.create_book(db=db, title=payload.title, author=payload.author, description=payload.description, user_id = user.id)
+        book = book_service.create_book(db=db, title=payload.title, author=payload.author, description=payload.description, epoch=payload.epoch, meeting_date=payload.meeting_date, user_id = user.id)
         return book_service.to_book_read(db=db, book=book)
     except BookAlreadyExistsError:
         raise HTTPException(status_code=409, detail="Book already exists")
@@ -95,14 +98,26 @@ def get_book_reviews(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
 @router.patch("/{book_id}", response_model=BookRead)
-def update_book_fields(book_id: int, title: str, author: str,db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def update_book_fields(book_id: int, title: str, author: str, request: Request, epoch: str | None = Query(default=None, max_length=10), meeting_date: str | None = Query(default=None), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     try:
-        book = book_service.update_book_fields(db=db, title=title, author=author, book_id=book_id, user = user)
+        epoch_value = epoch if "epoch" in request.query_params else EPOCH_UNSET
+        if "meeting_date" not in request.query_params:
+            meeting_date_value = MEETING_DATE_UNSET
+        elif not meeting_date:
+            meeting_date_value = None
+        else:
+            try:
+                meeting_date_value = date.fromisoformat(meeting_date)
+            except ValueError:
+                raise HTTPException(status_code=422, detail="meeting_date must be a valid ISO date")
+        book = book_service.update_book_fields(db=db, title=title, author=author, epoch=epoch_value, meeting_date=meeting_date_value, book_id=book_id, user = user)
         return book_service.to_book_read(db=db, book=book)
     except BookNotFoundError:
         raise HTTPException(status_code=404, detail="Book not found")
     except NotYourBookError:
         raise HTTPException(status_code=403, detail="You can't do that")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 

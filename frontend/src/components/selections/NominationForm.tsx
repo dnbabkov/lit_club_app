@@ -42,6 +42,8 @@ export function NominationForm({ selectionId, onSuccess }: NominationFormProps) 
 
   const [title, setTitle] = useState("")
   const [author, setAuthor] = useState("")
+  const [epoch, setEpoch] = useState("")
+  const [meetingDate, setMeetingDate] = useState("")
   const [comment, setComment] = useState("")
 
   const [errorMessage, setErrorMessage] = useState("")
@@ -132,6 +134,8 @@ export function NominationForm({ selectionId, onSuccess }: NominationFormProps) 
     setIsBookDropdownOpen(false)
     setTitle("")
     setAuthor("")
+    setEpoch("")
+    setMeetingDate("")
     setComment("")
   }
 
@@ -185,11 +189,15 @@ export function NominationForm({ selectionId, onSuccess }: NominationFormProps) 
       await createNominationFromNewBook(selectionId, {
         title: cleanTitle,
         author: cleanAuthor,
+        epoch: epoch || null,
+        meeting_date: meetingDate || null,
         comment: cleanComment ? cleanComment : null,
       })
 
       setTitle("")
       setAuthor("")
+      setEpoch("")
+      setMeetingDate("")
       setComment("")
       await onSuccess()
     } catch (error) {
@@ -403,6 +411,41 @@ export function NominationForm({ selectionId, onSuccess }: NominationFormProps) 
               type="text"
               value={author}
               onChange={(event) => setAuthor(event.target.value)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: 8,
+                marginTop: 4,
+                ...inputTextStyle,
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <label htmlFor="nomination-epoch">Эпоха</label>
+            <input
+              id="nomination-epoch"
+              type="text"
+              value={epoch}
+              maxLength={10}
+              onChange={(event) => setEpoch(event.target.value)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: 8,
+                marginTop: 4,
+                ...inputTextStyle,
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <label htmlFor="nomination-meeting-date">Дата собрания</label>
+            <input
+              id="nomination-meeting-date"
+              type="date"
+              value={meetingDate}
+              onChange={(event) => setMeetingDate(event.target.value)}
               style={{
                 display: "block",
                 width: "100%",

@@ -32,6 +32,8 @@ export function BooksPage() {
   const [items, setItems] = useState<BookWithReviewsRead[]>([])
   const [currentUser, setCurrentUser] = useState<UserRead | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [sortField, setSortField] = useState<"default" | "epoch" | "meeting_date" | "rating">("default")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
@@ -70,9 +72,45 @@ export function BooksPage() {
 
   const isAdmin = currentUser?.role === "admin"
 
-  const filteredBooks = books.filter((item) =>
-    bookMatchesSearch(item.book, searchQuery)
-  )
+  const averageRatings = useMemo(() => {
+    const result = new Map<number, number | null>()
+    for (const item of items) {
+      result.set(
+        item.book.id,
+        item.reviews.length
+          ? item.reviews.reduce((sum, review) => sum + review.rating, 0) / item.reviews.length
+          : null,
+      )
+    }
+    return result
+  }, [items])
+
+  const filteredBooks = useMemo(() => {
+    const filtered = books.filter((item) => bookMatchesSearch(item.book, searchQuery))
+    if (sortField === "default") return filtered
+
+    return [...filtered].sort((left, right) => {
+      const leftValue = sortField === "epoch"
+        ? left.book.epoch
+        : sortField === "meeting_date"
+          ? left.book.meeting_date
+          : averageRatings.get(left.book.id)
+      const rightValue = sortField === "epoch"
+        ? right.book.epoch
+        : sortField === "meeting_date"
+          ? right.book.meeting_date
+          : averageRatings.get(right.book.id)
+
+      if ((leftValue === null || leftValue === undefined) && (rightValue === null || rightValue === undefined)) {
+        return left.book.id - right.book.id
+      }
+      if (leftValue === null || leftValue === undefined) return 1
+      if (rightValue === null || rightValue === undefined) return -1
+      if (leftValue < rightValue) return sortDirection === "asc" ? -1 : 1
+      if (leftValue > rightValue) return sortDirection === "asc" ? 1 : -1
+      return left.book.id - right.book.id
+    })
+  }, [averageRatings, books, searchQuery, sortDirection, sortField])
 
   const randomReviewsByBookId = useMemo(() => {
     const result = new Map<number, ReviewRead | null>()
@@ -173,18 +211,30 @@ export function BooksPage() {
     <Layout>
       <h1>Все книги</h1>
 
-      <input
-        type="search"
-        value={searchQuery}
-        onChange={(event) => setSearchQuery(event.target.value)}
-        placeholder="Поиск по названию или автору"
-        style={{
-          width: "100%",
-          maxWidth: 480,
-          padding: "10px 12px",
-          marginBottom: 24,
-        }}
-      />
+      <div style={{ marginBottom: 24 }}>
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Поиск по названию или автору"
+          style={{ width: "100%", maxWidth: 480, padding: "10px 12px", marginBottom: 12 }}
+        />
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <label htmlFor="books-sort-field">Сортировать:</label>
+          <select id="books-sort-field" value={sortField} onChange={(event) => setSortField(event.target.value as typeof sortField)}>
+            <option value="default">Без сортировки</option>
+            <option value="epoch">По эпохе</option>
+            <option value="meeting_date">По дате собрания</option>
+            <option value="rating">По средней оценке</option>
+          </select>
+          {sortField !== "default" && (
+            <select aria-label="Направление сортировки" value={sortDirection} onChange={(event) => setSortDirection(event.target.value as typeof sortDirection)}>
+              <option value="asc">По возрастанию</option>
+              <option value="desc">По убыванию</option>
+            </select>
+          )}
+        </div>
+      </div>
 
       <div style={{ marginBottom: 24 }}>
         <button

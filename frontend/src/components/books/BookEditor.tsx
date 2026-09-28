@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from "react"
+import { useEffect, useState, type SyntheticEvent } from "react"
 import { ApiError } from "../../api/http"
 import { changeBookDescription, updateBookFields } from "../../api/books"
 import type { BookRead } from "../../types/books"
@@ -12,9 +12,19 @@ type BookEditorProps = {
 export function BookEditor({ book, onSuccess, onCancel }: BookEditorProps) {
   const [title, setTitle] = useState(book.title)
   const [author, setAuthor] = useState(book.author)
+  const [epoch, setEpoch] = useState(book.epoch ?? "")
+  const [meetingDate, setMeetingDate] = useState(book.meeting_date ?? "")
   const [description, setDescription] = useState(book.description ?? "")
   const [errorMessage, setErrorMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    setTitle(book.title)
+    setAuthor(book.author)
+    setEpoch(book.epoch ?? "")
+    setMeetingDate(book.meeting_date ?? "")
+    setDescription(book.description ?? "")
+  }, [book.id, book.title, book.author, book.epoch, book.meeting_date, book.description])
 
   const cleanTitle = title.trim()
   const cleanAuthor = author.trim()
@@ -22,8 +32,10 @@ export function BookEditor({ book, onSuccess, onCancel }: BookEditorProps) {
 
   const isTitleChanged = cleanTitle !== book.title.trim()
   const isAuthorChanged = cleanAuthor !== book.author.trim()
+  const isEpochChanged = epoch !== (book.epoch ?? "")
+  const isMeetingDateChanged = meetingDate !== (book.meeting_date ?? "")
   const isDescriptionChanged = cleanDescription !== (book.description ?? "").trim()
-  const hasChanges = isTitleChanged || isAuthorChanged || isDescriptionChanged
+  const hasChanges = isTitleChanged || isAuthorChanged || isEpochChanged || isMeetingDateChanged || isDescriptionChanged
 
   async function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -52,10 +64,12 @@ export function BookEditor({ book, onSuccess, onCancel }: BookEditorProps) {
     setIsSubmitting(true)
 
     try {
-      if (isTitleChanged || isAuthorChanged) {
+      if (isTitleChanged || isAuthorChanged || isEpochChanged || isMeetingDateChanged) {
         await updateBookFields(book.id, {
           title: cleanTitle,
           author: cleanAuthor,
+          ...(isEpochChanged ? { epoch: epoch || null } : {}),
+          ...(isMeetingDateChanged ? { meeting_date: meetingDate || null } : {}),
         })
       }
 
@@ -90,6 +104,29 @@ export function BookEditor({ book, onSuccess, onCancel }: BookEditorProps) {
       }}
     >
       <h3 style={{ marginTop: 0 }}>Редактировать книгу</h3>
+
+      <div style={{ marginBottom: 12 }}>
+        <label htmlFor={`book-${book.id}-epoch`}>Эпоха</label>
+        <input
+          id={`book-${book.id}-epoch`}
+          type="text"
+          value={epoch}
+          maxLength={10}
+          onChange={(event) => setEpoch(event.target.value)}
+          style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
+        />
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <label htmlFor={`book-${book.id}-meeting-date`}>Дата собрания</label>
+        <input
+          id={`book-${book.id}-meeting-date`}
+          type="date"
+          value={meetingDate}
+          onChange={(event) => setMeetingDate(event.target.value)}
+          style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
+        />
+      </div>
 
       <div style={{ marginBottom: 12 }}>
         <label htmlFor={`book-${book.id}-title`}>Название</label>

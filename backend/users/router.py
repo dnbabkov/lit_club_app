@@ -46,6 +46,19 @@ def edit_user(user_id: int, payload: UserAdminWrite, db: Session = Depends(get_d
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
 
+@router.post("/auth/dev", response_model=TokenResponse)
+def login_dev(db: Session = Depends(get_db)):
+    if not settings.dev_auth_allowed:
+        raise HTTPException(status_code=404, detail="Not found")
+    if settings.dev_auth_user_id is None:
+        raise HTTPException(status_code=503, detail="DEV_AUTH_USER_ID is not configured")
+    user = UserRepository().get_by_id(db, settings.dev_auth_user_id)
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=403, detail="Access not granted")
+    access_token = create_access_token({"sub": str(user.id), "auth_method": "dev"})
+    return TokenResponse(access_token=access_token, token_type="bearer")
+
+
 @router.post("/auth/telegram", response_model=TokenResponse)
 def login_telegram(payload: TelegramLogin, db: Session = Depends(get_db)):
     token = settings.telegram_bot_token

@@ -8,6 +8,23 @@ const http = await server.ssrLoadModule("/src/api/http.ts")
 const auth = await server.ssrLoadModule("/src/api/auth.ts")
 after(() => server.close())
 
+test("dev login obtains a new session without a previous bearer token", async () => {
+  const originalFetch = globalThis.fetch
+  tokens.setToken("old-session")
+  globalThis.fetch = async (url, options) => {
+    assert.ok(url.endsWith("/users/auth/dev"))
+    assert.equal(options.method, "POST")
+    assert.equal(options.headers.Authorization, undefined)
+    return Response.json({ access_token: "dev-session", token_type: "bearer" })
+  }
+  try {
+    assert.equal((await auth.loginDev()).access_token, "dev-session")
+  } finally {
+    globalThis.fetch = originalFetch
+    tokens.removeToken()
+  }
+})
+
 test("Telegram login sends raw initData without a previous bearer token", async () => {
   const originalFetch = globalThis.fetch
   tokens.setToken("old-session")

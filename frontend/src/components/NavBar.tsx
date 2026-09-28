@@ -79,17 +79,8 @@ export function NavBar() {
 
         {isAuthenticated ? (
           <>
-            <Link to="/meetings" className="navbar__link">
-              Встречи
-            </Link>
-            <Link to="/selection" className="navbar__link">
-              Выбор книги
-            </Link>
-            <Link to="/books/finished" className="navbar__link">
-              Прочитанные книги
-            </Link>
             <Link to="/books" className="navbar__link">
-              Все книги
+              Книги
             </Link>
             <Link to="/comics" className="navbar__link">
               Комикс

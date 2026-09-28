@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, UniqueConstraint, ForeignKey
+from sqlalchemy import Column, Date, Integer, String, UniqueConstraint, ForeignKey
 from lit_club_app.backend.db.base import Base
 
 class Book(Base):
@@ -7,6 +7,8 @@ class Book(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     author = Column(String, nullable=False)
+    epoch = Column(String(10), nullable=True)
+    meeting_date = Column(Date, nullable=True)
     description = Column(String, nullable=True)
     normalized_title = Column(String, nullable=False)
     normalized_author = Column(String, nullable=False)

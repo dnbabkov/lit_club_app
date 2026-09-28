@@ -402,6 +402,18 @@ export function BookPage() {
                   {book.author}
                 </div>
 
+                {book.epoch && (
+                  <div style={{ color: "#555", marginBottom: 12 }}>
+                    <strong>Эпоха:</strong> {book.epoch}
+                  </div>
+                )}
+
+                {book.meeting_date && (
+                  <div style={{ color: "#555", marginBottom: 12 }}>
+                    <strong>Дата собрания:</strong> {book.meeting_date}
+                  </div>
+                )}
+
                 <div style={{ marginBottom: 12 }}>
                   {book.book_file ? (
                     <div style={{ marginBottom: 8 }}>

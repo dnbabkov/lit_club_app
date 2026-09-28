@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict, field_validator
+from datetime import date
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from lit_club_app.backend.common.enums import BookSelectionStatus, WinnerSelectionStatus, MeetingStatus, \
     NominationBookSource
@@ -60,6 +62,8 @@ class NominationUpdate(BaseModel):
 class NominationBookUpdate(BaseModel):
     title: str
     author: str
+    epoch: str | None = Field(default=None, max_length=10)
+    meeting_date: date | None = None
 
     @field_validator("title", "author")
     @classmethod
@@ -68,6 +72,11 @@ class NominationBookUpdate(BaseModel):
         if not value:
             raise ValueError("Field cannot be empty")
         return value
+
+    @field_validator("meeting_date", mode="before")
+    @classmethod
+    def empty_date_is_none(cls, value):
+        return None if value == "" else value
 
 class NominationCommentUpdate(BaseModel):
     comment: str | None
@@ -80,6 +89,8 @@ class NominationRead(BaseModel):
     book_id: int
     title: str
     author: str
+    epoch: str | None
+    meeting_date: date | None
     comment: str | None
     book_source: NominationBookSource
 
@@ -98,6 +109,8 @@ class NominationExistingBookCreate(BaseModel):
 class NominationNewBookCreate(BaseModel):
     title: str
     author: str
+    epoch: str | None = Field(default=None, max_length=10)
+    meeting_date: date | None = None
     comment: str | None
 
     @field_validator("title", "author")
@@ -116,12 +129,19 @@ class NominationNewBookCreate(BaseModel):
         value = value.strip()
         return value or None
 
+    @field_validator("meeting_date", mode="before")
+    @classmethod
+    def empty_date_is_none(cls, value):
+        return None if value == "" else value
+
 class NominationExistingBookChange(BaseModel):
     book_id: int
 
 class NominationNewBookChange(BaseModel):
     title: str
     author: str
+    epoch: str | None = Field(default=None, max_length=10)
+    meeting_date: date | None = None
 
     @field_validator("title", "author")
     @classmethod
@@ -130,6 +150,11 @@ class NominationNewBookChange(BaseModel):
         if not value:
             raise ValueError("Field cannot be empty")
         return value
+
+    @field_validator("meeting_date", mode="before")
+    @classmethod
+    def empty_date_is_none(cls, value):
+        return None if value == "" else value
 
 
 class VoteCreate(BaseModel):

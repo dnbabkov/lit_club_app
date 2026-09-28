@@ -154,6 +154,12 @@ export function BookCard({
             {book.author}
           </div>
 
+          {book.meeting_date && (
+            <div style={{ color: "#444", marginTop: 6 }}>
+              <strong>Дата собрания:</strong> {book.meeting_date}
+            </div>
+          )}
+
           {averageRating && (
             <div style={{ color: "#444" }}>
               <strong>Оценка:</strong> {averageRating}
