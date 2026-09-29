@@ -79,3 +79,5 @@ dump/
 *.session-journal
 
 .opencode/
+
+*.dump
