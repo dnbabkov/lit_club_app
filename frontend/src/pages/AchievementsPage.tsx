@@ -42,6 +42,7 @@ export function AchievementsPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const form = event.currentTarget
     const cleanTitle = title.trim()
     const cleanDescription = description.trim()
     if (!recipient || !currentUser) return
@@ -61,7 +62,7 @@ export function AchievementsPage() {
       setTitle("")
       setDescription("")
       setImage(null)
-      event.currentTarget.reset()
+      form.reset()
       setFormOpen(false)
       setSuccess(true)
       setRefreshAttempt(value => value + 1)
