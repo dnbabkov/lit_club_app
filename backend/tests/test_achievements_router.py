@@ -241,6 +241,51 @@ def test_create_derives_giver_and_returns_exact_payload_for_any_existing_role(cl
     assert (tmp_path / row.path).is_file()
 
 
+def test_create_stores_pillow_composite_with_supplied_metadata(client, db_session, monkeypatch, tmp_path):
+    giver, recipient, _, header = _users_and_headers(db_session)
+    monkeypatch.setattr(service, "private_achievements_path", lambda: tmp_path)
+
+    first = client.post(
+        "/achievements", headers=header(giver),
+        data={"recipient_id": str(recipient.id), "title": "First title", "description": "First description"},
+        files=_multipart_image(),
+    )
+    second = client.post(
+        "/achievements", headers=header(giver),
+        data={"recipient_id": str(recipient.id), "title": "Second title", "description": "Second description"},
+        files=_multipart_image(),
+    )
+
+    assert first.status_code == second.status_code == 201
+    first_path = tmp_path / db_session.get(Achievement, first.json()["id"]).path
+    second_path = tmp_path / db_session.get(Achievement, second.json()["id"]).path
+    with Image.open(first_path) as first_image, Image.open(second_path) as second_image:
+        assert first_image.format == second_image.format == "PNG"
+        assert first_image.size == second_image.size == (2094, 1076)
+    assert first_path.read_bytes() != _multipart_image()["image"][1]
+    assert first_path.read_bytes() != second_path.read_bytes()
+
+
+def test_create_cleans_composite_when_pillow_generator_fails(client, db_session, monkeypatch, tmp_path):
+    giver, recipient, _, header = _users_and_headers(db_session)
+    monkeypatch.setattr(service, "private_achievements_path", lambda: tmp_path)
+
+    def fail_after_writing(picture, title, description, output_path=None):
+        output_path.write_bytes(b"partial composite")
+        raise RuntimeError("generator failure")
+
+    monkeypatch.setattr(service.achievement_service, "create_achievement", fail_after_writing)
+    with pytest.raises(RuntimeError):
+        client.post(
+            "/achievements", headers=header(giver),
+            data={"recipient_id": str(recipient.id), "title": "Title", "description": "Description"},
+            files=_multipart_image(),
+        )
+
+    assert db_session.query(Achievement).count() == 0
+    assert list(tmp_path.iterdir()) == []
+
+
 @pytest.mark.parametrize("field,value", [
     ("title", "   "), ("description", "\t\n"),
     ("title", "x" * 201), ("description", "x" * 5001),
@@ -373,6 +418,29 @@ def test_delete_recipient_moderator_denied_admin_allowed_and_missing_is_404(clie
     })}
     assert client.delete("/achievements/20", headers=admin_header).status_code == 204
     assert client.delete("/achievements/99999", headers=admin_header).status_code == 404
+
+
+def test_creator_can_delete_record_even_when_image_is_missing(client, db_session, achievements):
+    headers, _, _ = achievements
+
+    assert client.delete("/achievements/20", headers=headers[1]).status_code == 204
+    assert db_session.get(Achievement, 20) is None
+
+
+def test_repository_delete_rolls_back_when_commit_fails(db_session, achievements, monkeypatch):
+    _, _, _ = achievements
+    repository = AchievementRepository()
+    original_commit = db_session.commit
+
+    def fail_commit():
+        raise RuntimeError("database failure")
+
+    monkeypatch.setattr(db_session, "commit", fail_commit)
+    with pytest.raises(RuntimeError):
+        repository.delete_achievement(db_session, 10)
+
+    monkeypatch.setattr(db_session, "commit", original_commit)
+    assert db_session.get(Achievement, 10) is not None
 
 
 def test_delete_never_unlinks_legacy_outside_or_shared_paths(client, db_session, achievements):

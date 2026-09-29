@@ -62,7 +62,7 @@ async def create_achievement(
     recipient = db.get(User, recipient_id)
     if recipient is None:
         raise HTTPException(404, "Пользователь не найден")
-    filename = await service.save_uploaded_image(image)
+    filename = await service.compose_uploaded_image(image, title, description)
     try:
         achievement = AchievementRepository().create(
             db, recipient.id, filename, user.id, title, description,

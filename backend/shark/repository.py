@@ -36,6 +36,10 @@ class AchievementRepository:
         achievement = db.get(Achievement, achievement_id)
         if achievement is None:
             return None
-        db.delete(achievement)
-        db.commit()
+        try:
+            db.delete(achievement)
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
         return achievement

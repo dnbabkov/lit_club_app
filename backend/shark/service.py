@@ -41,7 +41,7 @@ class AchievementService:
         self.achievement_repo = AchievementRepository()
         self.user_repo = UserRepository()
 
-    def create_achievement(self, picture, title_text, description_text):
+    def create_achievement(self, picture, title_text, description_text, output_path=None):
         background = Image.open(background_img_path)
 
         picture = picture.resize((700, 700))
@@ -80,9 +80,21 @@ class AchievementService:
         stump = Image.open(stump_path)
         background = Image.alpha_composite(background, stump)
 
-        achievement_id = len(os.listdir(achievements_path))
-        background.save(achievements_path / f'{achievement_id}.png')
-        return achievement_id
+        if output_path is None:
+            # Keep the bot's historical numeric filenames for existing callers.
+            achievement_id = len(os.listdir(achievements_path))
+            background.save(achievements_path / f'{achievement_id}.png')
+            return achievement_id
+
+        output_path = pathlib.Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = output_path.with_name(f".{output_path.name}.{uuid4().hex}.tmp")
+        try:
+            background.save(temporary_path, format="PNG")
+            temporary_path.replace(output_path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
+        return output_path
 
     def give_achievement(self, db, user_tg_id, giver_tg_id, title_str, description_str, picture):
         user_id = self.user_repo.get_by_tg_id(db, user_tg_id).id
@@ -146,3 +158,36 @@ async def save_uploaded_image(file: UploadFile) -> str:
     path = directory / f"{uuid4().hex}.png"
     path.write_bytes(output.getvalue())
     return path.name
+
+
+async def compose_uploaded_image(file: UploadFile, title: str, description: str) -> str:
+    data = await file.read(20 * 1024 * 1024 + 1)
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(413, "Изображение должно быть не больше 20 МБ")
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(BytesIO(data)) as image:
+                if image.format not in {"PNG", "JPEG", "WEBP"}:
+                    raise HTTPException(400, "Допустимы изображения JPEG, PNG и WebP")
+                if image.width > 10000 or image.height > 10000 or image.width * image.height > 50_000_000:
+                    raise HTTPException(400, "Изображение имеет недопустимые размеры")
+                image.load()
+                picture = image.convert("RGBA" if "A" in image.getbands() else "RGB")
+    except HTTPException:
+        raise
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError,
+            Image.DecompressionBombWarning):
+        raise HTTPException(400, "Файл не является корректным изображением")
+
+    directory = private_achievements_path()
+    filename = f"{uuid4().hex}.png"
+    output_path = directory / filename
+    try:
+        achievement_service.create_achievement(
+            picture, title, description, output_path=output_path,
+        )
+    except Exception:
+        output_path.unlink(missing_ok=True)
+        raise
+    return filename
