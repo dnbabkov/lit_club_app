@@ -8,6 +8,7 @@ function AchievementCard({ achievement, canDelete, onDeleted }: { achievement: A
   const [error, setError] = useState("")
   const [deleteError, setDeleteError] = useState("")
   const [deleting, setDeleting] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
@@ -62,19 +63,34 @@ function AchievementCard({ achievement, canDelete, onDeleted }: { achievement: A
       </div>
       <small style={{ display: "block", marginBottom: 4 }}>Выдал(а)</small>
       <strong>{achievement.giver.username}</strong>
-      {canDelete && <button type="button" style={{ display: "block", margin: "12px auto 0" }} onClick={async () => {
-        if (!window.confirm("Удалить эту ачивку?")) return
-        setDeleting(true)
+      {canDelete && <button type="button" style={{ display: "block", margin: "12px auto 0" }} onClick={() => {
         setDeleteError("")
-        try {
-          await deleteAchievement(achievement.id)
-          onDeleted()
-        } catch (error) {
-          setDeleteError(error instanceof Error ? error.message : "Не удалось удалить ачивку")
-        } finally {
-          setDeleting(false)
-        }
+        setConfirmingDelete(true)
       }} disabled={deleting}>{deleting ? "Удаление…" : "Удалить ачивку"}</button>}
+      {canDelete && confirmingDelete && <div role="alertdialog" aria-labelledby={`delete-achievement-title-${achievement.id}`} aria-describedby={`delete-achievement-description-${achievement.id}`} style={{ marginTop: 12 }}>
+        <strong id={`delete-achievement-title-${achievement.id}`}>Удалить ачивку?</strong>
+        <p id={`delete-achievement-description-${achievement.id}`}>Это действие нельзя отменить.</p>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+          <button type="button" onClick={() => {
+            setConfirmingDelete(false)
+            setDeleteError("")
+          }} disabled={deleting}>Отмена</button>
+          <button type="button" onClick={async () => {
+            if (deleting) return
+            setDeleting(true)
+            setDeleteError("")
+            try {
+              await deleteAchievement(achievement.id)
+              setConfirmingDelete(false)
+              onDeleted()
+            } catch (error) {
+              setDeleteError(error instanceof Error ? error.message : "Не удалось удалить ачивку")
+            } finally {
+              setDeleting(false)
+            }
+          }} disabled={deleting}>{deleting ? "Удаление…" : "Подтвердить удаление"}</button>
+        </div>
+      </div>}
       {deleteError && <p role="alert">{deleteError}</p>}
     </div>
   </article>
@@ -105,7 +121,7 @@ export function ProfileAchievements({ username }: { username?: string }) {
       : achievements === null ? <p role="status">Загрузка достижений…</p>
       : achievements.length === 0 ? <p>{username ? "У пользователя пока нет достижений." : "У вас пока нет достижений."}</p>
       : <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 960, margin: "0 auto" }}>
-         {achievements.map(achievement => <AchievementCard key={achievement.id} achievement={achievement}
+          {achievements.map(achievement => <AchievementCard key={`${username ?? "me"}:${achievement.id}`} achievement={achievement}
            canDelete={currentUser?.role === "admin" || currentUser?.id === achievement.giver.id}
            onDeleted={refresh} />)}
       </div>}
