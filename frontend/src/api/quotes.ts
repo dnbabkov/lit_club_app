@@ -6,7 +6,7 @@ export function getQuotesForBook(bookId: number): Promise<QuoteRead[]> {
 }
 
 export function getRandomQuote(signal?: AbortSignal): Promise<RandomQuoteRead> {
-  return request<RandomQuoteRead>("/quotes/random", { method: "GET", signal })
+  return request<RandomQuoteRead>(`/quotes/random?_=${crypto.randomUUID()}`, { method: "GET", signal })
 }
 
 export function createQuote(payload: QuoteCreatePayload): Promise<QuoteRead> {
