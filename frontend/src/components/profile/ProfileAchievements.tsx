@@ -43,7 +43,7 @@ function AchievementCard({ achievement, canDelete, onDeleted }: { achievement: A
     }
   }, [achievement.image_url, attempt])
 
-  return <article ref={cardRef} style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12, minWidth: 0, display: "grid", gridTemplateColumns: "minmax(0, 3fr) minmax(80px, 1fr)", gap: 12, alignItems: "center" }}>
+  return <article ref={cardRef} style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12, minWidth: 0 }}>
     <div style={{ minWidth: 0 }}>
       {error ? <div role="alert">
         <p>{error}</p>
@@ -56,11 +56,6 @@ function AchievementCard({ achievement, canDelete, onDeleted }: { achievement: A
       /> : <p role="status">Загрузка ачивки…</p>}
     </div>
     <div style={{ minWidth: 0, textAlign: "center", overflowWrap: "anywhere" }}>
-      <div aria-hidden="true" style={{ width: 48, height: 48, borderRadius: "50%", border: "1px solid #ddd", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, margin: "0 auto 8px" }}>
-        {achievement.giver.username.trim().charAt(0).toUpperCase() || "?"}
-      </div>
-      <small style={{ display: "block", marginBottom: 4 }}>Выдал(а)</small>
-      <strong>{achievement.giver.username}</strong>
       {canDelete && <button type="button" style={{ display: "block", margin: "12px auto 0" }} onClick={() => {
         setDeleteError("")
         setConfirmingDelete(true)

@@ -31,6 +31,10 @@ export async function getCurrentUser(token?: string): Promise<UserRead> {
   return request<UserRead>("/users/me", { token })
 }
 
+export async function updateCurrentUser(payload: { username: string }): Promise<UserRead> {
+  return patch<UserRead>("/users/me", payload)
+}
+
 export type UserAdminRead = UserRead & { tg_id: string | null }
 export type UserAdminWrite = { username: string; tg_id: string | null; telegram_login: string | null }
 

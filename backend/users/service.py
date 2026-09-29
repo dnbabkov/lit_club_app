@@ -11,7 +11,7 @@ from lit_club_app.backend.selections.models import Nomination
 from lit_club_app.backend.selections.repository import NominationRepository, BookSelectionRepository
 from lit_club_app.backend.users.models import User
 from lit_club_app.backend.users.schemas import UserRegister, UserLogin, UserProfileRead, UserProfileBookRead, \
-    UserProfileBookRatingRead, UserAdminWrite
+    UserProfileBookRatingRead, UserAdminWrite, UserSelfUpdate
 
 from lit_club_app.backend.common.enums import Roles
 
@@ -49,6 +49,21 @@ class UserService:
         except IntegrityError as exc:
             db.rollback()
             raise ValueError("Имя, Telegram ID или Telegram-ник уже используется") from exc
+        db.refresh(user)
+        return user
+
+    def update_self(self, db: Session, user: User, payload: UserSelfUpdate) -> User:
+        username = payload.username
+        existing_user = self.repo.get_by_username(db=db, username=username)
+        if existing_user is not None and existing_user.id != user.id:
+            raise ValueError("Имя уже используется другим пользователем")
+        user.username = username
+        try:
+            db.add(user)
+            db.commit()
+        except IntegrityError as exc:
+            db.rollback()
+            raise ValueError("Имя уже используется другим пользователем") from exc
         db.refresh(user)
         return user
 

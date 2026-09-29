@@ -7,6 +7,7 @@ export type AuthContextValue = {
   isAuthenticated: boolean
   status: AuthStatus
   retry: () => void
+  updateUser: (user: UserRead) => void
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined)

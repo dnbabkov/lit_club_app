@@ -83,3 +83,21 @@ def test_unbound_accounts_and_missing_target(client, db_session):
     assert response.json()["tg_id"] is None
     assert response.json()["telegram_login"] is None
     assert client.patch("/users/9999", headers=headers(admin), json=payload).status_code == 404
+
+
+def test_user_can_rename_self(client, db_session):
+    user = account(db_session, "old", 11)
+    response = client.patch("/users/me", headers=headers(user), json={"username": "  new name  "})
+    assert response.status_code == 200, response.text
+    assert response.json()["username"] == "new name"
+    db_session.refresh(user)
+    assert user.username == "new name"
+
+
+def test_user_cannot_rename_self_to_existing_username(client, db_session):
+    account(db_session, "taken", 11)
+    user = account(db_session, "old", 22)
+    response = client.patch("/users/me", headers=headers(user), json={"username": "taken"})
+    assert response.status_code == 409
+    db_session.refresh(user)
+    assert user.username == "old"

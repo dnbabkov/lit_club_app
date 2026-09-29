@@ -71,8 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAttempt(value => value + 1)
   }
 
+  function updateUser(user: NonNullable<AuthContextValue["user"]>) {
+    setState(previous => ({ ...previous, user }))
+  }
+
   return (
-    <AuthContext.Provider value={{ ...state, isAuthenticated: state.status === "authenticated", retry }}>
+    <AuthContext.Provider value={{ ...state, isAuthenticated: state.status === "authenticated", retry, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

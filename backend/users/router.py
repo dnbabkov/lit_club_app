@@ -10,7 +10,7 @@ from lit_club_app.backend.core.config import settings
 from lit_club_app.backend.core.telegram import InvalidTelegramData, validate_init_data
 from lit_club_app.backend.users.repository import UserRepository
 from lit_club_app.backend.users.models import User
-from lit_club_app.backend.users.schemas import TelegramLogin, UserRead, TokenResponse, UserProfileRead, UserPublicRead, UserAdminWrite, UserAdminRead
+from lit_club_app.backend.users.schemas import TelegramLogin, UserRead, TokenResponse, UserProfileRead, UserPublicRead, UserAdminWrite, UserAdminRead, UserSelfUpdate
 from lit_club_app.backend.users.service import user_service
 from lit_club_app.backend.shark.router import get_profile_achievements, require_visible_achievement_owner
 from lit_club_app.backend.shark.schemas import AchievementRead
@@ -32,6 +32,14 @@ def require_admin(user: User = Depends(get_current_user)) -> User:
 def create_user(payload: UserAdminWrite, db: Session = Depends(get_db)):
     try:
         return user_service.save_admin_user(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@router.patch("/me", response_model=UserRead, status_code=200)
+def update_user_me(payload: UserSelfUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        return user_service.update_self(db, current_user, payload)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
 
@@ -87,6 +95,7 @@ def get_user_me(current_user: User = Depends(get_current_user)):
         return current_user
     except:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
 
 @router.get("/me/profile/achievements", response_model=list[AchievementRead], response_model_exclude_none=True)
 def my_profile_achievements(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

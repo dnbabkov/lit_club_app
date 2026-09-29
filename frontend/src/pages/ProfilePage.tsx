@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { updateCurrentUser, type UserRead } from "../api/auth"
 import { getMyProfile, getUserProfile } from "../api/profile"
 import { useAuth } from "../auth/useAuth"
 import { Layout } from "../components/Layout"
@@ -10,10 +11,53 @@ function getRoleLabel(role: UserProfileRead["role"]): string {
   return role === "admin" ? "Администратор" : role === "moderator" ? "Модератор" : "Участник"
 }
 
+function UsernameEditor({ profile, onUpdated }: { profile: UserProfileRead, onUpdated: (user: UserRead) => void }) {
+  const [usernameDraft, setUsernameDraft] = useState(profile.username)
+  const [usernameSaving, setUsernameSaving] = useState(false)
+  const [usernameMessage, setUsernameMessage] = useState("")
+  const [usernameError, setUsernameError] = useState("")
+
+  async function saveUsername() {
+    const cleanUsername = usernameDraft.trim()
+    if (!cleanUsername) {
+      setUsernameError("Введите имя.")
+      return
+    }
+    setUsernameSaving(true)
+    setUsernameError("")
+    setUsernameMessage("")
+    try {
+      const updatedUser = await updateCurrentUser({ username: cleanUsername })
+      setUsernameDraft(updatedUser.username)
+      setUsernameMessage("Имя обновлено.")
+      onUpdated(updatedUser)
+    } catch (error) {
+      setUsernameError(error instanceof Error ? error.message : "Не удалось обновить имя")
+    } finally {
+      setUsernameSaving(false)
+    }
+  }
+
+  return <div style={{ display: "grid", gap: 8, maxWidth: 360, marginTop: 16 }}>
+    <label>Имя
+      <input value={usernameDraft} maxLength={50} onChange={event => {
+        setUsernameDraft(event.target.value)
+        setUsernameError("")
+        setUsernameMessage("")
+      }} />
+    </label>
+    {usernameError && <p role="alert" style={{ margin: 0 }}>{usernameError}</p>}
+    {usernameMessage && <p role="status" style={{ margin: 0 }}>{usernameMessage}</p>}
+    <button type="button" onClick={() => void saveUsername()} disabled={usernameSaving || usernameDraft.trim() === profile.username}>
+      {usernameSaving ? "Сохранение…" : "Сохранить имя"}
+    </button>
+  </div>
+}
+
 export function ProfilePage() {
   const { username } = useParams<{ username: string }>()
   const navigate = useNavigate()
-  const { user: currentUser } = useAuth()
+  const { user: currentUser, updateUser } = useAuth()
   const isOwnProfileRoute = !username
   const [result, setResult] = useState<{
     username?: string
@@ -52,6 +96,12 @@ export function ProfilePage() {
               <p style={{ margin: "4px 0" }}><strong>Telegram login:</strong> {profile.telegram_login ?? "Не указан"}</p>
             )}
             <p style={{ margin: "4px 0" }}><strong>Роль:</strong> {getRoleLabel(profile.role)}</p>
+            {isOwnProfileRoute && <UsernameEditor key={profile.id} profile={profile} onUpdated={user => {
+              updateUser(user)
+              setResult(previous => previous?.profile
+                ? { ...previous, profile: { ...previous.profile, username: user.username } }
+                : previous)
+            }} />}
             <button type="button" style={{ marginTop: 16 }} onClick={() => navigate(
               isOwnProfileRoute ? "/profile/achievements" : `/users/${encodeURIComponent(profile.username)}/profile/achievements`
             )}>Достижения</button>

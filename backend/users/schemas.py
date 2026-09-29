@@ -28,6 +28,12 @@ class UserPublicRead(BaseModel):
     username: str = Field(min_length=1, max_length=50)
 
 
+class UserSelfUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    username: str = Field(min_length=1, max_length=50)
+
+
 class UserAdminWrite(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
