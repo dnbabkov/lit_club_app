@@ -45,17 +45,15 @@ function AchievementCard({ achievement, canDelete, onDeleted }: { achievement: A
 
   return <article ref={cardRef} style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12, minWidth: 0, display: "grid", gridTemplateColumns: "minmax(0, 3fr) minmax(80px, 1fr)", gap: 12, alignItems: "center" }}>
     <div style={{ minWidth: 0 }}>
-      {achievement.title != null && <h2 style={{ marginTop: 0 }}>{achievement.title}</h2>}
-      {achievement.description != null && <p style={{ whiteSpace: "pre-wrap" }}>{achievement.description}</p>}
-    {error ? <div role="alert">
-      <p>{error}</p>
-      <button type="button" onClick={() => { setError(""); setUrl(null); setAttempt(value => value + 1) }}>Повторить</button>
-    </div> : url ? <img
-      src={url}
-      alt={`Ачивка №${achievement.id}: название и описание на изображении`}
-      style={{ display: "block", width: "100%", height: "auto", borderRadius: 8 }}
-      onError={() => setError("Не удалось показать изображение ачивки")}
-    /> : <p role="status">Загрузка ачивки…</p>}
+      {error ? <div role="alert">
+        <p>{error}</p>
+        <button type="button" onClick={() => { setError(""); setUrl(null); setAttempt(value => value + 1) }}>Повторить</button>
+      </div> : url ? <img
+        src={url}
+        alt={`Ачивка №${achievement.id}`}
+        style={{ display: "block", width: "100%", height: "auto", borderRadius: 8 }}
+        onError={() => setError("Не удалось показать изображение ачивки")}
+      /> : <p role="status">Загрузка ачивки…</p>}
     </div>
     <div style={{ minWidth: 0, textAlign: "center", overflowWrap: "anywhere" }}>
       <div aria-hidden="true" style={{ width: 48, height: 48, borderRadius: "50%", border: "1px solid #ddd", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, margin: "0 auto 8px" }}>
