@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 
 from lit_club_app.backend.api.dependencies import get_db, get_current_user
 from lit_club_app.backend.books.schemas import BooksRead, BookRead, BookChangeDescription, BookCreate, \
-    BookWithReviewsRead, BookAssignUser, CanDeleteBookRead
+    BookWithReviewsRead, BookAssignUser, CanDeleteBookRead, TopBookRead, YearWinnerRead
 from lit_club_app.backend.books.service import book_service
-from lit_club_app.backend.books.repository import EPOCH_UNSET, MEETING_DATE_UNSET
+from lit_club_app.backend.books.repository import MEETING_DATE_UNSET
 from lit_club_app.backend.common.enums import Roles
 from lit_club_app.backend.core.exceptions import BookNotFoundError, EmptyDescriptionError, BookAlreadyExistsError, \
     NotYourBookError, UserNotFoundError, AlreadyAssignedError, CantDeleteNominatedBookError, ForbiddenFileTypeError, \
@@ -24,6 +24,21 @@ def get_books(db: Session = Depends(get_db), user: User = Depends(get_current_us
     try:
         books = book_service.get_all_books(db=db)
         return book_service.to_books_read(db=db, books=books, user=user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+
+@router.get("/top", response_model=list[TopBookRead], dependencies=[Depends(get_current_user)])
+def get_top_books(db: Session = Depends(get_db)):
+    try:
+        return book_service.get_top_books(db=db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
+@router.get("/year-winners", response_model=list[YearWinnerRead], dependencies=[Depends(get_current_user)])
+def get_year_winners(db: Session = Depends(get_db)):
+    try:
+        return book_service.get_year_winners(db=db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
@@ -70,7 +85,7 @@ def change_description(book_id: int, payload: BookChangeDescription, db: Session
 @router.post("/", response_model=BookRead)
 def create_book(payload: BookCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     try:
-        book = book_service.create_book(db=db, title=payload.title, author=payload.author, description=payload.description, epoch=payload.epoch, meeting_date=payload.meeting_date, user_id = user.id)
+        book = book_service.create_book(db=db, title=payload.title, author=payload.author, description=payload.description, meeting_date=payload.meeting_date, user_id = user.id)
         return book_service.to_book_read(db=db, book=book)
     except BookAlreadyExistsError:
         raise HTTPException(status_code=409, detail="Book already exists")
@@ -98,9 +113,8 @@ def get_book_reviews(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
 
 @router.patch("/{book_id}", response_model=BookRead)
-def update_book_fields(book_id: int, title: str, author: str, request: Request, epoch: str | None = Query(default=None, max_length=10), meeting_date: str | None = Query(default=None), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def update_book_fields(book_id: int, title: str, author: str, request: Request, meeting_date: str | None = Query(default=None), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     try:
-        epoch_value = epoch if "epoch" in request.query_params else EPOCH_UNSET
         if "meeting_date" not in request.query_params:
             meeting_date_value = MEETING_DATE_UNSET
         elif not meeting_date:
@@ -110,7 +124,7 @@ def update_book_fields(book_id: int, title: str, author: str, request: Request, 
                 meeting_date_value = date.fromisoformat(meeting_date)
             except ValueError:
                 raise HTTPException(status_code=422, detail="meeting_date must be a valid ISO date")
-        book = book_service.update_book_fields(db=db, title=title, author=author, epoch=epoch_value, meeting_date=meeting_date_value, book_id=book_id, user = user)
+        book = book_service.update_book_fields(db=db, title=title, author=author, meeting_date=meeting_date_value, book_id=book_id, user = user)
         return book_service.to_book_read(db=db, book=book)
     except BookNotFoundError:
         raise HTTPException(status_code=404, detail="Book not found")

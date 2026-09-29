@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 import { useAuth } from "../auth/useAuth"
 
 export function NavBar() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const location = useLocation()
   const [menuPath, setMenuPath] = useState<string | null>(null)
   const isMobileMenuOpen = menuPath === location.pathname
@@ -37,7 +37,7 @@ export function NavBar() {
   return (
     <header className="navbar">
       <Link to="/" className="navbar__brand" onClick={closeMobileMenu}>
-        Литературный клуб
+        Книжный клуб
       </Link>
 
       <button
@@ -85,10 +85,15 @@ export function NavBar() {
             <Link to="/comics" className="navbar__link">
               Комикс
             </Link>
-
-            <Link to="/users" className="navbar__link">
-              Пользователи
+            <Link to="/achievements" className="navbar__link">
+              Ачивки
             </Link>
+
+            {user?.role === "admin" ? (
+              <Link to="/users" className="navbar__link">
+                Пользователи
+              </Link>
+            ) : null}
 
             <Link to="/profile" className="navbar__link">
               Профиль

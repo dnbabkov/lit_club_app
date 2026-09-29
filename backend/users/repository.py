@@ -57,6 +57,11 @@ class UserRepository:
         result = db.execute(statement)
         return result.scalars().all()
 
+    def get_all_users_for_achievement_directory(self, db: Session) -> Sequence[User]:
+        statement = select(User).where(User.username != "dev_admin").order_by(User.id)
+        result = db.execute(statement)
+        return result.scalars().all()
+
     def update_user_password(self, db: Session, user: User, password_hash: str) -> User:
         try:
             user.password_hash = password_hash

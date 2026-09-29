@@ -1,12 +1,14 @@
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import type { BookRead } from "../../types/books"
 import type { ReviewRead } from "../../types/reviews"
+import { BookMetadataRow } from "./BookMetadataRow"
 
 const API_URL = import.meta.env.VITE_API_URL ?? ""
 
 type BookCardProps = {
   book: BookRead
-  averageRating?: string | null
+  averageRating?: number | null
   randomReview?: ReviewRead | null
   canEdit?: boolean
   canAssignUser?: boolean
@@ -24,6 +26,73 @@ function buildBackendUrl(path: string): string {
   }
 
   return `${API_URL}${path}`
+}
+
+function LazyBookCover({ src, alt }: { src: string; alt: string }) {
+  const coverRef = useRef<HTMLDivElement>(null)
+  const [shouldLoad, setShouldLoad] = useState(() => typeof IntersectionObserver === "undefined")
+  const [error, setError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") {
+      return
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setShouldLoad(true)
+        observer.disconnect()
+      }
+    }, { rootMargin: "300px" })
+
+    if (coverRef.current) {
+      observer.observe(coverRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [src])
+
+  return (
+    <div
+      ref={coverRef}
+      style={{ width: "100%", height: "100%" }}
+      role={error || !shouldLoad ? "status" : undefined}
+    >
+      {!shouldLoad ? (
+        <span>Загрузка обложки…</span>
+      ) : error ? (
+        <div>
+          <span>Не удалось загрузить обложку</span>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              setError(false)
+              setAttempt((value) => value + 1)
+            }}
+          >
+            Повторить
+          </button>
+        </div>
+      ) : (
+        <img
+          key={`${src}-${attempt}`}
+          src={src}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          onError={() => setError(true)}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      )}
+    </div>
+  )
 }
 
 export function BookCard({
@@ -50,6 +119,14 @@ export function BookCard({
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    const interactiveDescendant = event.target instanceof Element
+      ? event.target.closest("button, a, input, select, textarea, [role=\"button\"]")
+      : null
+
+    if (interactiveDescendant && interactiveDescendant !== event.currentTarget) {
+      return
+    }
+
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
       handleOpenBookPage()
@@ -119,15 +196,10 @@ export function BookCard({
           }}
         >
           {coverSrc ? (
-            <img
+            <LazyBookCover
+              key={coverSrc}
               src={coverSrc}
               alt={`Обложка книги ${book.title}`}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-              }}
             />
           ) : (
             <span>Нет обложки</span>
@@ -148,23 +220,22 @@ export function BookCard({
           <div
             style={{
               color: "#555",
-              marginBottom: averageRating ? 8 : 0,
+              marginBottom: 8,
             }}
           >
             {book.author}
           </div>
 
-          {book.meeting_date && (
-            <div style={{ color: "#444", marginTop: 6 }}>
-              <strong>Дата собрания:</strong> {book.meeting_date}
-            </div>
-          )}
+          <div style={{ color: "#444", lineHeight: 1.5 }}>
+            {book.description && book.description.trim().length > 0
+              ? book.description
+              : "Описание пока не добавлено"}
+          </div>
 
-          {averageRating && (
-            <div style={{ color: "#444" }}>
-              <strong>Оценка:</strong> {averageRating}
-            </div>
-          )}
+          <BookMetadataRow
+            meetingDate={book.meeting_date}
+            averageRating={averageRating ?? null}
+          />
         </div>
       </div>
 

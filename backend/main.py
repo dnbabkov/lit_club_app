@@ -19,6 +19,7 @@ from lit_club_app.backend.selections.router import router as selections_router
 from lit_club_app.backend.meetings.router import router as meetings_router
 from lit_club_app.backend.books.router import router as books_router
 from lit_club_app.backend.reviews.router import router as reviews_router
+from lit_club_app.backend.quotes.router import router as quotes_router
 from lit_club_app.backend.comics.router import router as comics_router
 from lit_club_app.backend.shark.router import router as achievements_router
 
@@ -59,6 +60,7 @@ app.include_router(selections_router)
 app.include_router(meetings_router)
 app.include_router(books_router)
 app.include_router(reviews_router)
+app.include_router(quotes_router)
 app.include_router(comics_router)
 app.include_router(achievements_router)
 

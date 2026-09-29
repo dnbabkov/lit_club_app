@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { getComicChapter, getComicChapters, type ComicChapter, type ComicChapterSummary } from "../api/comics"
+import { getComicChapter, getComicChapters, getComicImage, type ComicChapter, type ComicChapterSummary } from "../api/comics"
 import { useAuth } from "../auth/useAuth"
 import { ComicImage } from "../components/ComicImage"
 import { Layout } from "../components/Layout"
@@ -42,12 +42,35 @@ function ComicReader({ chapterId }: { chapterId: string }) {
   const [chapter, setChapter] = useState<ComicChapter | null>(null)
   const [index, setIndex] = useState(0)
   const [error, setError] = useState("")
+  const [pageImages, setPageImages] = useState<Record<string, string>>({})
   useEffect(() => {
     let active = true
     getComicChapter(chapterId).then(data => { if (active) setChapter(data) })
       .catch(error => { if (active) setError(error instanceof Error ? error.message : "Не удалось загрузить главу") })
     return () => { active = false }
   }, [chapterId])
+
+  useEffect(() => {
+    if (!chapter) return
+    const controller = new AbortController()
+    const createdUrls: string[] = []
+
+    chapter.pages.forEach(page => {
+      getComicImage(page.image_url, controller.signal).then(blob => {
+        if (controller.signal.aborted) return
+        const url = URL.createObjectURL(blob)
+        createdUrls.push(url)
+        setPageImages(current => ({ ...current, [page.image_url]: url }))
+      }).catch(() => {
+        // The visible page still has its own retry UI through ComicImage.
+      })
+    })
+
+    return () => {
+      controller.abort()
+      createdUrls.forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [chapter])
 
   const count = chapter?.pages.length ?? 0
   useEffect(() => {
@@ -72,7 +95,7 @@ function ComicReader({ chapterId }: { chapterId: string }) {
       <div className="comic-toolbar"><h1>{chapter.number}. {chapter.title}</h1>{user?.role === "admin" && <Link to={`/comics/${chapter.id}/edit`}>Редактировать</Link>}</div>
       {count === 0 ? <p>В этой главе пока нет страниц.</p> : <>
         {navigation}
-        <ComicImage key={chapter.pages[index].id} path={chapter.pages[index].image_url} alt={`${chapter.title}, страница ${index + 1}`} className="comic-reader-image" />
+        <ComicImage key={chapter.pages[index].id} path={chapter.pages[index].image_url} preloadedUrl={pageImages[chapter.pages[index].image_url]} alt={`${chapter.title}, страница ${index + 1}`} className="comic-reader-image" />
         {navigation}
       </>}
     </>}

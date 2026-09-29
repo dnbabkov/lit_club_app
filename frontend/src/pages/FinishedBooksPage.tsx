@@ -6,7 +6,7 @@ import { BookCard } from "../components/books/BookCard"
 import type { BookWithReviewsRead } from "../types/books"
 import type { ReviewRead } from "../types/reviews"
 
-function formatAverageRating(reviews: ReviewRead[]): string | null {
+function formatAverageRating(reviews: ReviewRead[]): number | null {
   if (reviews.length === 0) {
     return null
   }
@@ -14,7 +14,7 @@ function formatAverageRating(reviews: ReviewRead[]): string | null {
   const sum = reviews.reduce((acc, review) => acc + review.rating, 0)
   const average = sum / reviews.length
 
-  return `${average.toFixed(1)}/5`
+  return average
 }
 
 function getRandomReview(reviews: ReviewRead[]): ReviewRead | null {

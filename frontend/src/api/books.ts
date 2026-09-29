@@ -5,11 +5,21 @@ import type {
   BookCreatePayload,
   BookRead,
   BooksRead, BookUpdateFieldsPayload,
+  TopBookRead,
+  YearWinnerRead,
   BookWithReviewsRead,
 } from "../types/books"
 
 export async function getBooks(): Promise<BooksRead> {
   return get<BooksRead>("/books/")
+}
+
+export async function getTopBooks(): Promise<TopBookRead[]> {
+  return get<TopBookRead[]>("/books/top")
+}
+
+export async function getYearWinners(signal?: AbortSignal): Promise<YearWinnerRead[]> {
+  return get<YearWinnerRead[]>("/books/year-winners", signal)
 }
 
 export async function getFinishedBooks(): Promise<BooksRead> {
@@ -47,10 +57,6 @@ export async function updateBookFields(
     title: payload.title,
     author: payload.author,
   })
-
-  if (payload.epoch !== undefined) {
-    searchParams.set("epoch", payload.epoch ?? "")
-  }
 
   if (payload.meeting_date !== undefined) {
     searchParams.set("meeting_date", payload.meeting_date ?? "")

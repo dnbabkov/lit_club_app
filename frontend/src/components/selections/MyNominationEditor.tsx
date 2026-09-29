@@ -47,7 +47,6 @@ export function MyNominationEditor({
 
   const [editBookTitle, setEditBookTitle] = useState(nomination.title)
   const [editBookAuthor, setEditBookAuthor] = useState(nomination.author)
-  const [editBookEpoch, setEditBookEpoch] = useState(nomination.epoch ?? "")
   const [editBookMeetingDate, setEditBookMeetingDate] = useState(nomination.meeting_date ?? "")
 
   const [books, setBooks] = useState<BookRead[]>([])
@@ -58,7 +57,6 @@ export function MyNominationEditor({
 
   const [changeBookTitle, setChangeBookTitle] = useState("")
   const [changeBookAuthor, setChangeBookAuthor] = useState("")
-  const [changeBookEpoch, setChangeBookEpoch] = useState("")
   const [changeBookMeetingDate, setChangeBookMeetingDate] = useState("")
 
   const [commentOnly, setCommentOnly] = useState(nomination.comment ?? "")
@@ -69,10 +67,9 @@ export function MyNominationEditor({
   useEffect(() => {
     setEditBookTitle(nomination.title)
     setEditBookAuthor(nomination.author)
-    setEditBookEpoch(nomination.epoch ?? "")
     setEditBookMeetingDate(nomination.meeting_date ?? "")
     setCommentOnly(nomination.comment ?? "")
-  }, [nomination.title, nomination.author, nomination.epoch, nomination.meeting_date, nomination.comment])
+  }, [nomination.title, nomination.author, nomination.meeting_date, nomination.comment])
 
   useEffect(() => {
     let isMounted = true
@@ -144,7 +141,6 @@ export function MyNominationEditor({
     setErrorMessage("")
     setEditBookTitle(nomination.title)
     setEditBookAuthor(nomination.author)
-    setEditBookEpoch(nomination.epoch ?? "")
     setEditBookMeetingDate(nomination.meeting_date ?? "")
     setEditMode("edit-book")
   }
@@ -157,7 +153,6 @@ export function MyNominationEditor({
     setIsBookDropdownOpen(false)
     setChangeBookTitle("")
     setChangeBookAuthor("")
-    setChangeBookEpoch("")
     setChangeBookMeetingDate("")
     setEditMode("change-book")
   }
@@ -177,7 +172,6 @@ export function MyNominationEditor({
     setIsBookDropdownOpen(false)
     setChangeBookTitle("")
     setChangeBookAuthor("")
-    setChangeBookEpoch("")
     setChangeBookMeetingDate("")
   }
 
@@ -189,7 +183,6 @@ export function MyNominationEditor({
     setIsBookDropdownOpen(false)
     setChangeBookTitle("")
     setChangeBookAuthor("")
-    setChangeBookEpoch("")
   }
 
   function handleUnknownError(error: unknown) {
@@ -208,7 +201,6 @@ export function MyNominationEditor({
 
     const cleanTitle = editBookTitle.trim()
     const cleanAuthor = editBookAuthor.trim()
-    const isEpochChanged = editBookEpoch !== (nomination.epoch ?? "")
     const isMeetingDateChanged = editBookMeetingDate !== (nomination.meeting_date ?? "")
 
     if (!cleanTitle || !cleanAuthor) {
@@ -222,7 +214,6 @@ export function MyNominationEditor({
       await updateMyNominationBook(selectionId, {
         title: cleanTitle,
         author: cleanAuthor,
-        ...(isEpochChanged ? { epoch: editBookEpoch || null } : {}),
         ...(isMeetingDateChanged ? { meeting_date: editBookMeetingDate || null } : {}),
       })
 
@@ -283,7 +274,6 @@ export function MyNominationEditor({
       await changeMyNominationToNewBook(selectionId, {
         title: cleanTitle,
         author: cleanAuthor,
-        epoch: changeBookEpoch || null,
         meeting_date: changeBookMeetingDate || null,
       })
 
@@ -438,24 +428,6 @@ export function MyNominationEditor({
               value={editBookMeetingDate}
               onChange={(event) => setEditBookMeetingDate(event.target.value)}
               style={{ display: "block", width: "100%", padding: 8, marginTop: 4, ...inputTextStyle }}
-            />
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <label htmlFor="edit-book-epoch">Эпоха</label>
-            <input
-              id="edit-book-epoch"
-              type="text"
-              value={editBookEpoch}
-              maxLength={10}
-              onChange={(event) => setEditBookEpoch(event.target.value)}
-              style={{
-                display: "block",
-                width: "100%",
-                padding: 8,
-                marginTop: 4,
-                ...inputTextStyle,
-              }}
             />
           </div>
 
@@ -689,24 +661,6 @@ export function MyNominationEditor({
                   value={changeBookMeetingDate}
                   onChange={(event) => setChangeBookMeetingDate(event.target.value)}
                   style={{ display: "block", width: "100%", padding: 8, marginTop: 4, ...inputTextStyle }}
-                />
-              </div>
-
-              <div style={{ marginBottom: 12 }}>
-                <label htmlFor="change-book-epoch">Эпоха другой книги</label>
-                <input
-                  id="change-book-epoch"
-                  type="text"
-                  value={changeBookEpoch}
-                  maxLength={10}
-                  onChange={(event) => setChangeBookEpoch(event.target.value)}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    padding: 8,
-                    marginTop: 4,
-                    ...inputTextStyle,
-                  }}
                 />
               </div>
 

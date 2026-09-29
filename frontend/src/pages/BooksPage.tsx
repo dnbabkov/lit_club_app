@@ -32,8 +32,10 @@ export function BooksPage() {
   const [items, setItems] = useState<BookWithReviewsRead[]>([])
   const [currentUser, setCurrentUser] = useState<UserRead | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortField, setSortField] = useState<"default" | "epoch" | "meeting_date" | "rating">("default")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+  const [sortField, setSortField] = useState<"meeting_date" | "rating">("meeting_date")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+  const [pendingSortField, setPendingSortField] = useState<"meeting_date" | "rating">("meeting_date")
+  const [pendingSortDirection, setPendingSortDirection] = useState<"asc" | "desc">("desc")
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
@@ -87,27 +89,21 @@ export function BooksPage() {
 
   const filteredBooks = useMemo(() => {
     const filtered = books.filter((item) => bookMatchesSearch(item.book, searchQuery))
-    if (sortField === "default") return filtered
-
     return [...filtered].sort((left, right) => {
-      const leftValue = sortField === "epoch"
-        ? left.book.epoch
-        : sortField === "meeting_date"
-          ? left.book.meeting_date
-          : averageRatings.get(left.book.id)
-      const rightValue = sortField === "epoch"
-        ? right.book.epoch
-        : sortField === "meeting_date"
-          ? right.book.meeting_date
-          : averageRatings.get(right.book.id)
+       const leftValue = sortField === "meeting_date"
+           ? left.book.meeting_date
+           : averageRatings.get(left.book.id)
+      const rightValue = sortField === "meeting_date"
+           ? right.book.meeting_date
+           : averageRatings.get(right.book.id)
 
       if ((leftValue === null || leftValue === undefined) && (rightValue === null || rightValue === undefined)) {
         return left.book.id - right.book.id
       }
       if (leftValue === null || leftValue === undefined) return 1
       if (rightValue === null || rightValue === undefined) return -1
-      if (leftValue < rightValue) return sortDirection === "asc" ? -1 : 1
-      if (leftValue > rightValue) return sortDirection === "asc" ? 1 : -1
+       if (leftValue < rightValue) return sortDirection === "asc" ? -1 : 1
+       if (leftValue > rightValue) return sortDirection === "asc" ? 1 : -1
       return left.book.id - right.book.id
     })
   }, [averageRatings, books, searchQuery, sortDirection, sortField])
@@ -211,29 +207,28 @@ export function BooksPage() {
     <Layout>
       <h1>Все книги</h1>
 
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 24 }}>
         <input
           type="search"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Поиск по названию или автору"
-          style={{ width: "100%", maxWidth: 480, padding: "10px 12px", marginBottom: 12 }}
+          style={{ flex: "1 1 280px", minWidth: 180, padding: "10px 12px" }}
         />
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <label htmlFor="books-sort-field">Сортировать:</label>
-          <select id="books-sort-field" value={sortField} onChange={(event) => setSortField(event.target.value as typeof sortField)}>
-            <option value="default">Без сортировки</option>
-            <option value="epoch">По эпохе</option>
-            <option value="meeting_date">По дате собрания</option>
-            <option value="rating">По средней оценке</option>
-          </select>
-          {sortField !== "default" && (
-            <select aria-label="Направление сортировки" value={sortDirection} onChange={(event) => setSortDirection(event.target.value as typeof sortDirection)}>
-              <option value="asc">По возрастанию</option>
-              <option value="desc">По убыванию</option>
-            </select>
-          )}
-        </div>
+        <select id="books-sort-field" aria-label="Сортировать" value={pendingSortField} onChange={(event) => setPendingSortField(event.target.value as typeof pendingSortField)}>
+           <option value="meeting_date">По дате собрания</option>
+           <option value="rating">По средней оценке</option>
+         </select>
+        <select aria-label="Направление сортировки" value={pendingSortDirection} onChange={(event) => setPendingSortDirection(event.target.value as typeof pendingSortDirection)}>
+          <option value="asc">По возрастанию</option>
+           <option value="desc">По убыванию</option>
+         </select>
+         <button type="button" onClick={() => {
+           setSortField(pendingSortField)
+           setSortDirection(pendingSortDirection)
+         }}>
+           Сортировать
+         </button>
       </div>
 
       <div style={{ marginBottom: 24 }}>
@@ -278,6 +273,7 @@ export function BooksPage() {
               <div key={book.id}>
                 <BookCard
                   book={book}
+                  averageRating={averageRatings.get(book.id) ?? null}
                   canEdit={canEditBook(book)}
                   canAssignUser={canAssignUserToBook(book)}
                   canDelete={item.can_delete}

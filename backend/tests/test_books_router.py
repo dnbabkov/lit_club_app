@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
 
@@ -95,6 +95,170 @@ def test_get_books_empty(client):
     data = response.json()
     assert "books" in data
     assert data["books"] == []
+
+
+def test_get_top_books_requires_auth_and_returns_empty_for_empty_database(client):
+    response = client.get("/books/top")
+    assert response.status_code in (401, 403)
+
+    token = register_user(client, "user", "user_login")
+    response = client.get("/books/top", headers=auth_headers(token))
+
+    assert response.status_code == 200, response.text
+    assert response.json() == []
+
+
+def test_get_top_books_aggregates_rated_books_with_stable_top_ten_order(client, db_session):
+    token = register_user(client, "reader", "reader_login")
+
+    specifications = [
+        ("one five", [5]),
+        ("two fives first", [5, 5]),
+        ("two fives second", [5, 5]),
+        ("four and five", [4, 5]),
+        ("four average", [4, 4, 4]),
+        ("three average", [3, 3]),
+        ("second six", [2]),
+        ("third seven", [2]),
+        ("fourth eight", [2]),
+        ("fifth nine", [2]),
+        ("sixth ten", [2]),
+        ("seventh eleven", [2]),
+        ("eighth twelve", [2]),
+        ("unrated", []),
+    ]
+    books = [create_book_direct(db_session, title, "Author") for title, _ in specifications]
+
+    next_user_number = 1
+    for book, (_, ratings) in zip(books, specifications):
+        for rating in ratings:
+            user = User(
+                username=f"reviewer{next_user_number}",
+                telegram_login=f"reviewer_login{next_user_number}",
+                tg_id=6_000_000_000 + next_user_number,
+            )
+            db_session.add(user)
+            db_session.flush()
+            create_review_direct(db_session, user.id, book.id, rating)
+            next_user_number += 1
+
+    before_books = db_session.query(Book).count()
+    before_reviews = db_session.query(Review).count()
+
+    response = client.get("/books/top", headers=auth_headers(token))
+
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert len(result) == 10
+    assert [item["title"] for item in result] == [
+        "two fives first",
+        "two fives second",
+        "one five",
+        "four and five",
+        "four average",
+        "three average",
+        "second six",
+        "third seven",
+        "fourth eight",
+        "fifth nine",
+    ]
+    assert result[0]["average_rating"] == 5.0
+    assert result[0]["review_count"] == 2
+    assert result[3]["average_rating"] == 4.5
+    assert result[3]["review_count"] == 2
+    assert result[-1]["review_count"] == 1
+    assert all(item["title"] != "unrated" for item in result)
+    assert db_session.query(Book).count() == before_books
+    assert db_session.query(Review).count() == before_reviews
+
+
+def test_get_year_winners_requires_auth_and_empty_response_does_not_mutate_db(client, db_session):
+    assert client.get("/books/year-winners").status_code in (401, 403)
+
+    token = register_user(client, "reader", "reader_login")
+    before_books = db_session.query(Book).count()
+    before_reviews = db_session.query(Review).count()
+
+    response = client.get("/books/year-winners", headers=auth_headers(token))
+
+    assert response.status_code == 200, response.text
+    assert response.json() == []
+    assert db_session.query(Book).count() == before_books
+    assert db_session.query(Review).count() == before_reviews
+
+
+def test_get_year_winners_uses_september_boundaries_leap_dates_and_ascending_years(client, db_session, monkeypatch):
+    token = register_user(client, "reader", "reader_login")
+    selected_pools = []
+
+    def deterministic_choice(candidates):
+        selected_pools.append([candidate[0].title for candidate in candidates])
+        return next(
+            (candidate for candidate in candidates if candidate[0].title == "Exact tie one"),
+            candidates[0],
+        )
+
+    monkeypatch.setattr("lit_club_app.backend.books.service.choice", deterministic_choice)
+
+    def rated_book(title, meeting_date, ratings):
+        book = Book(
+            title=title,
+            author="Author",
+            meeting_date=meeting_date,
+            normalized_title=title.lower(),
+            normalized_author="author",
+        )
+        db_session.add(book)
+        db_session.flush()
+        for index, rating in enumerate(ratings):
+            reviewer = User(
+                username=f"{title.replace(' ', '_')}_{index}",
+                telegram_login=f"{title.replace(' ', '_')}_{index}_login",
+                tg_id=7_000_000_000 + db_session.query(User).count() + 1,
+            )
+            db_session.add(reviewer)
+            db_session.flush()
+            db_session.add(Review(user_id=reviewer.id, book_id=book.id, rating=rating, anonymous=False))
+        db_session.commit()
+        return book
+
+    rated_book("Aug boundary", date(2020, 8, 31), [5])
+    rated_book("Sep boundary", date(2020, 9, 1), [5])
+    rated_book("Leap day winner", date(2024, 2, 29), [5])
+    rated_book("Aug 2024 loser", date(2024, 8, 31), [4, 4])
+    rated_book("Exact tie one", date(2025, 9, 1), [5])
+    rated_book("Exact tie two", date(2025, 9, 2), [5])
+    rated_book("Exact tie loser", date(2025, 9, 3), [4, 4])
+    rated_book("Unrounded high", date(2026, 9, 1), [5, 4, 4, 4])
+    rated_book("Rounded-looking low", date(2026, 9, 2), [5, 5, 4, 4, 3])
+    unrated = Book(
+        title="Undated and unrated",
+        author="Author",
+        meeting_date=None,
+        normalized_title="undated and unrated",
+        normalized_author="author",
+    )
+    db_session.add(unrated)
+    db_session.commit()
+
+    response = client.get("/books/year-winners", headers=auth_headers(token))
+
+    assert response.status_code == 200, response.text
+    assert [(item["start_year"], item["title"]) for item in response.json()] == [
+        (2019, "Aug boundary"),
+        (2020, "Sep boundary"),
+        (2023, "Leap day winner"),
+        (2025, "Exact tie one"),
+        (2026, "Unrounded high"),
+    ]
+    assert {frozenset(pool) for pool in selected_pools} == {
+        frozenset(("Aug boundary",)),
+        frozenset(("Sep boundary",)),
+        frozenset(("Leap day winner",)),
+        frozenset(("Exact tie one", "Exact tie two")),
+        frozenset(("Unrounded high",)),
+    }
+    assert all(item["title"] != "Undated and unrated" for item in response.json())
 
 
 def test_create_book_success(client):

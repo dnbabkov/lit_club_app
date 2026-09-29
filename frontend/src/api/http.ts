@@ -6,6 +6,7 @@ type RequestOptions = {
     method?: HttpMethod
     body?: unknown
     token?: string | null
+    signal?: AbortSignal
 }
 
 export class ApiError extends Error {
@@ -39,6 +40,7 @@ export async function request<T>(
         method,
         headers,
         body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+        signal: options.signal,
     })
 
     if (!response.ok) {
@@ -101,8 +103,8 @@ export async function uploadFormData<T>(path: string, formData: FormData): Promi
     return data as T
 }
 
-export async function get<T>(path: string): Promise<T> {
-    return request<T>(path, {method : "GET"})
+export async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
+    return request<T>(path, {method : "GET", signal})
 }
 
 export async function post<T>(path: string, body?: unknown): Promise<T> {

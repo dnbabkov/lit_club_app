@@ -12,7 +12,7 @@ from lit_club_app.backend.users.repository import UserRepository
 from lit_club_app.backend.users.models import User
 from lit_club_app.backend.users.schemas import TelegramLogin, UserRead, TokenResponse, UserProfileRead, UserPublicRead, UserAdminWrite, UserAdminRead
 from lit_club_app.backend.users.service import user_service
-from lit_club_app.backend.shark.router import get_profile_achievements, require_visible_profile
+from lit_club_app.backend.shark.router import get_profile_achievements, require_visible_achievement_owner
 from lit_club_app.backend.shark.schemas import AchievementRead
 from lit_club_app.backend.core.exceptions import (
     UserNotFoundError,
@@ -88,15 +88,23 @@ def get_user_me(current_user: User = Depends(get_current_user)):
     except:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-@router.get("/me/profile/achievements", response_model=list[AchievementRead])
+@router.get("/me/profile/achievements", response_model=list[AchievementRead], response_model_exclude_none=True)
 def my_profile_achievements(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return get_profile_achievements(db, current_user)
 
 
-@router.get("/{username}/profile/achievements", response_model=list[AchievementRead])
+@router.get("/achievement-directory", response_model=list[UserPublicRead], status_code=200)
+def get_achievement_directory(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        return UserRepository().get_all_users_for_achievement_directory(db)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Не удалось загрузить каталог достижений")
+
+
+@router.get("/{username}/profile/achievements", response_model=list[AchievementRead], response_model_exclude_none=True)
 def user_profile_achievements(username: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     owner = UserRepository().get_by_username(db, username)
-    require_visible_profile(owner, current_user)
+    require_visible_achievement_owner(owner, current_user)
     return get_profile_achievements(db, owner)
 
 
@@ -122,6 +130,7 @@ def get_all_users_public(db: Session = Depends(get_db)):
         return user_service.get_all_non_admin_users(db=db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unknown error: {e}")
+
 
 @router.get("/{username}/profile", response_model=UserProfileRead, status_code=200)
 def get_other_user_profile(username: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):

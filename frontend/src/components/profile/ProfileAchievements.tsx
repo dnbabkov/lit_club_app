@@ -1,29 +1,51 @@
-import { useEffect, useState } from "react"
-import { getAchievementImage, getMyAchievements, getUserAchievements, type AchievementRead } from "../../api/achievements"
+import { useEffect, useRef, useState } from "react"
+import { deleteAchievement, getAchievementImage, getMyAchievements, getUserAchievements, type AchievementRead } from "../../api/achievements"
+import { useAuth } from "../../auth/useAuth"
 
-function AchievementCard({ achievement }: { achievement: AchievementRead }) {
+function AchievementCard({ achievement, canDelete, onDeleted }: { achievement: AchievementRead, canDelete: boolean, onDeleted: () => void }) {
+  const cardRef = useRef<HTMLElement>(null)
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState("")
+  const [deleteError, setDeleteError] = useState("")
+  const [deleting, setDeleting] = useState(false)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
     let objectUrl: string | undefined
-    getAchievementImage(achievement.image_url, controller.signal).then(blob => {
-      if (controller.signal.aborted) return
-      objectUrl = URL.createObjectURL(blob)
-      setUrl(objectUrl)
-    }).catch(error => {
-      if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Не удалось загрузить ачивку")
-    })
+    let started = false
+    const loadImage = () => {
+      if (started) return
+      started = true
+      getAchievementImage(achievement.image_url, controller.signal).then(blob => {
+        if (controller.signal.aborted) return
+        objectUrl = URL.createObjectURL(blob)
+        setUrl(objectUrl)
+      }).catch(error => {
+        if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Не удалось загрузить ачивку")
+      })
+    }
+    const observer = typeof IntersectionObserver === "undefined"
+      ? null
+      : new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          loadImage()
+          observer?.disconnect()
+        }
+      }, { rootMargin: "200px" })
+    if (observer && cardRef.current) observer.observe(cardRef.current)
+    else loadImage()
     return () => {
       controller.abort()
+      observer?.disconnect()
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
   }, [achievement.image_url, attempt])
 
-  return <article style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12, minWidth: 0, display: "grid", gridTemplateColumns: "minmax(0, 3fr) minmax(80px, 1fr)", gap: 12, alignItems: "center" }}>
+  return <article ref={cardRef} style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12, minWidth: 0, display: "grid", gridTemplateColumns: "minmax(0, 3fr) minmax(80px, 1fr)", gap: 12, alignItems: "center" }}>
     <div style={{ minWidth: 0 }}>
+      {achievement.title != null && <h2 style={{ marginTop: 0 }}>{achievement.title}</h2>}
+      {achievement.description != null && <p style={{ whiteSpace: "pre-wrap" }}>{achievement.description}</p>}
     {error ? <div role="alert">
       <p>{error}</p>
       <button type="button" onClick={() => { setError(""); setUrl(null); setAttempt(value => value + 1) }}>Повторить</button>
@@ -40,31 +62,52 @@ function AchievementCard({ achievement }: { achievement: AchievementRead }) {
       </div>
       <small style={{ display: "block", marginBottom: 4 }}>Выдал(а)</small>
       <strong>{achievement.giver.username}</strong>
+      {canDelete && <button type="button" style={{ display: "block", margin: "12px auto 0" }} onClick={async () => {
+        if (!window.confirm("Удалить эту ачивку?")) return
+        setDeleting(true)
+        setDeleteError("")
+        try {
+          await deleteAchievement(achievement.id)
+          onDeleted()
+        } catch (error) {
+          setDeleteError(error instanceof Error ? error.message : "Не удалось удалить ачивку")
+        } finally {
+          setDeleting(false)
+        }
+      }} disabled={deleting}>{deleting ? "Удаление…" : "Удалить ачивку"}</button>}
+      {deleteError && <p role="alert">{deleteError}</p>}
     </div>
   </article>
 }
 
 export function ProfileAchievements({ username }: { username?: string }) {
+  const { user: currentUser } = useAuth()
   const [achievements, setAchievements] = useState<AchievementRead[] | null>(null)
   const [error, setError] = useState("")
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
-    let active = true
-    const request = username ? getUserAchievements(username) : getMyAchievements()
-    request.then(data => { if (active) setAchievements(data) })
-      .catch(error => { if (active) setError(error instanceof Error ? error.message : "Не удалось загрузить ачивки") })
-    return () => { active = false }
+    const controller = new AbortController()
+    const request = username ? getUserAchievements(username, controller.signal) : getMyAchievements(controller.signal)
+    request.then(data => { if (!controller.signal.aborted) setAchievements(data) })
+      .catch(error => {
+        if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Не удалось загрузить ачивки")
+      })
+    return () => controller.abort()
   }, [username, attempt])
 
+  const refresh = () => setAttempt(value => value + 1)
+
   return <section aria-labelledby="profile-achievements-title" style={{ marginBottom: 24 }}>
-    <h1 id="profile-achievements-title">Достижения{achievements?.length ? ` (${achievements.length})` : ""}</h1>
+    <h2 id="profile-achievements-title">Достижения{achievements?.length ? ` (${achievements.length})` : ""}</h2>
     {username && <p>{username}</p>}
     {error ? <div role="alert"><p>{error}</p><button type="button" onClick={() => { setError(""); setAttempt(value => value + 1) }}>Повторить</button></div>
       : achievements === null ? <p role="status">Загрузка достижений…</p>
       : achievements.length === 0 ? <p>{username ? "У пользователя пока нет достижений." : "У вас пока нет достижений."}</p>
       : <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 960, margin: "0 auto" }}>
-        {achievements.map(achievement => <AchievementCard key={achievement.id} achievement={achievement} />)}
+         {achievements.map(achievement => <AchievementCard key={achievement.id} achievement={achievement}
+           canDelete={currentUser?.role === "admin" || currentUser?.id === achievement.giver.id}
+           onDeleted={refresh} />)}
       </div>}
   </section>
 }

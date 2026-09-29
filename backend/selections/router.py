@@ -21,7 +21,7 @@ from lit_club_app.backend.selections.schemas import (
     CurrentUserVotesRead, NominationBookUpdate,
 )
 from lit_club_app.backend.selections.service import selection_service
-from lit_club_app.backend.books.repository import EPOCH_UNSET, MEETING_DATE_UNSET
+from lit_club_app.backend.books.repository import MEETING_DATE_UNSET
 from lit_club_app.backend.core.exceptions import (
     MeetingNotFoundError,
     BookSelectionNotFoundError,
@@ -131,7 +131,6 @@ def create_nomination_from_new_book(selection_id: int, payload: NominationNewBoo
             user_id=current_user.id,
             title=payload.title,
             author=payload.author,
-            epoch=payload.epoch,
             meeting_date=payload.meeting_date,
             comment=payload.comment,
         )
@@ -185,7 +184,6 @@ def change_user_nomination_to_new_book(
             user_id=current_user.id,
             title=payload.title,
             author=payload.author,
-            epoch=payload.epoch,
             meeting_date=payload.meeting_date,
         )
         return selection_service.to_nomination_read(db=db, nomination=nomination)
@@ -221,7 +219,6 @@ def edit_user_new_nomination_book(selection_id: int, payload: NominationBookUpda
             user_id=current_user.id,
             title=payload.title,
             author=payload.author,
-            epoch=payload.epoch if "epoch" in payload.model_fields_set else EPOCH_UNSET,
             meeting_date=payload.meeting_date if "meeting_date" in payload.model_fields_set else MEETING_DATE_UNSET,
         )
         return selection_service.to_nomination_read(db=db, nomination=nomination)

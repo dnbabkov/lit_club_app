@@ -1,9 +1,19 @@
+from io import BytesIO
 from typing import Sequence
+import logging
+import warnings
+from uuid import uuid4
+
+from fastapi import HTTPException, UploadFile
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from lit_club_app.backend.shark.repository import AchievementRepository
 from lit_club_app.backend.users.repository import UserRepository
+from lit_club_app.backend.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 import sqlite3
 import pathlib
@@ -103,3 +113,36 @@ if __name__ == '__main__':
 
 
 achievement_service = AchievementService()
+
+
+def private_achievements_path() -> pathlib.Path:
+    return settings.upload_dir.parent / "achievement_uploads"
+
+
+async def save_uploaded_image(file: UploadFile) -> str:
+    data = await file.read(20 * 1024 * 1024 + 1)
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(413, "Изображение должно быть не больше 20 МБ")
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(BytesIO(data)) as image:
+                if image.format not in {"PNG", "JPEG", "WEBP"}:
+                    raise HTTPException(400, "Допустимы изображения JPEG, PNG и WebP")
+                if image.width > 10000 or image.height > 10000 or image.width * image.height > 50_000_000:
+                    raise HTTPException(400, "Изображение имеет недопустимые размеры")
+                image.load()
+                converted = image.convert("RGBA" if "A" in image.getbands() else "RGB")
+                output = BytesIO()
+                converted.save(output, format="PNG", optimize=True)
+    except HTTPException:
+        raise
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError,
+            Image.DecompressionBombWarning):
+        raise HTTPException(400, "Файл не является корректным изображением")
+
+    directory = private_achievements_path()
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{uuid4().hex}.png"
+    path.write_bytes(output.getvalue())
+    return path.name

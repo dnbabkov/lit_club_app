@@ -7,6 +7,7 @@ import {BookPage} from "../pages/BookPage.tsx"
 import {FinishedBooksPage} from "../pages/FinishedBooksPage.tsx";
 import {ProfilePage} from "../pages/ProfilePage.tsx";
 import {AchievementsPage} from "../pages/AchievementsPage.tsx";
+import {AchievementDirectoryPage} from "../pages/AchievementDirectoryPage.tsx";
 import {ProtectedRoute} from "../components/ProtectedRoute.tsx";
 import {UsersPage} from "../pages/UsersPage.tsx";
 import {ComicsPage, ComicReaderPage} from "../pages/ComicPage.tsx";
@@ -15,6 +16,7 @@ import {ComicEditorPage} from "../pages/ComicEditorPage.tsx";
 export const router = createBrowserRouter([
   { path: "/profile/achievements", element: <ProtectedRoute><AchievementsPage /></ProtectedRoute> },
   { path: "/users/:username/profile/achievements", element: <ProtectedRoute><AchievementsPage /></ProtectedRoute> },
+  { path: "/achievements", element: <ProtectedRoute><AchievementDirectoryPage /></ProtectedRoute> },
   { path: "/comics", element: <ProtectedRoute><ComicsPage /></ProtectedRoute> },
   { path: "/comics/new", element: <ProtectedRoute><ComicEditorPage /></ProtectedRoute> },
   { path: "/comics/:chapterId", element: <ProtectedRoute><ComicReaderPage /></ProtectedRoute> },

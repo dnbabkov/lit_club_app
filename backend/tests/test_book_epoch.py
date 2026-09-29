@@ -31,69 +31,69 @@ def create_selection(client, db_session, moderator_token: str) -> int:
     return response.json()["id"]
 
 
-def test_book_epoch_is_optional_readable_and_limited_to_ten(client):
+def test_book_epoch_is_absent_from_model_and_book_api(client, db_session):
     token = register_user(client, "reader", "reader_login")
 
-    without_epoch = client.post(
+    response = client.post(
         "/books/",
-        json={"title": "Dune", "author": "Frank Herbert", "description": None},
+        json={
+            "title": "Dune",
+            "author": "Frank Herbert",
+            "description": None,
+            "epoch": "ignored legacy value",
+        },
         headers=auth_headers(token),
     )
-    assert without_epoch.status_code == 200, without_epoch.text
-    assert without_epoch.json()["epoch"] is None
+    assert response.status_code == 200, response.text
+    assert "epoch" not in response.json()
+
+    book_id = response.json()["id"]
     read_back = client.get(
-        f"/books/{without_epoch.json()['id']}",
+        f"/books/{book_id}",
         headers=auth_headers(token),
     )
     assert read_back.status_code == 200, read_back.text
-    assert read_back.json()["epoch"] is None
+    assert "epoch" not in read_back.json()
 
-    ten_chars = client.post(
-        "/books/",
-        json={"title": "1984", "author": "George Orwell", "description": None, "epoch": "1234567890"},
-        headers=auth_headers(token),
-    )
-    assert ten_chars.status_code == 200, ten_chars.text
-    assert ten_chars.json()["epoch"] == "1234567890"
-
-    eleven_chars = client.post(
-        "/books/",
-        json={"title": "Foundation", "author": "Isaac Asimov", "description": None, "epoch": "12345678901"},
-        headers=auth_headers(token),
-    )
-    assert eleven_chars.status_code == 422
+    stored = db_session.execute(select(Book).where(Book.id == book_id)).scalar_one()
+    assert not hasattr(stored, "epoch")
+    assert stored.meeting_date is None
 
 
-def test_book_epoch_patch_omission_preserves_and_empty_query_clears(client, db_session):
+def test_book_epoch_patch_is_ignored_and_other_book_fields_still_work(client, db_session):
     token = register_user(client, "reader", "reader_login")
     create_response = client.post(
         "/books/",
-        json={"title": "Dune", "author": "Frank Herbert", "description": None, "epoch": "classic"},
+        json={
+            "title": "Dune",
+            "author": "Frank Herbert",
+            "description": None,
+            "meeting_date": "2026-09-28",
+        },
         headers=auth_headers(token),
     )
     book_id = create_response.json()["id"]
 
     omitted = client.patch(
         f"/books/{book_id}",
-        params={"title": "Dune revised", "author": "Frank Herbert"},
+        params={
+            "title": "Dune revised",
+            "author": "Frank Herbert",
+            "epoch": "legacy query value",
+        },
         headers=auth_headers(token),
     )
     assert omitted.status_code == 200, omitted.text
-    assert omitted.json()["epoch"] == "classic"
-
-    cleared = client.patch(
-        f"/books/{book_id}",
-        params={"title": "Dune final", "author": "Frank Herbert", "epoch": ""},
-        headers=auth_headers(token),
-    )
-    assert cleared.status_code == 200, cleared.text
-    assert cleared.json()["epoch"] is None
+    assert "epoch" not in omitted.json()
+    assert omitted.json()["title"] == "Dune revised"
+    assert omitted.json()["meeting_date"] == "2026-09-28"
 
     stored = db_session.execute(select(Book).where(Book.id == book_id)).scalar_one()
-    assert stored.epoch is None
+    assert not hasattr(stored, "epoch")
+    assert stored.meeting_date.isoformat() == "2026-09-28"
 
 
-def test_nomination_new_change_and_edit_propagate_epoch(client, db_session):
+def test_nomination_flows_do_not_expose_or_store_epoch(client, db_session):
     moderator_token = register_user(client, "moderator", "moderator_login")
     promote_to_moderator(db_session, "moderator_login")
     user_token = register_user(client, "reader", "reader_login")
@@ -101,19 +101,32 @@ def test_nomination_new_change_and_edit_propagate_epoch(client, db_session):
 
     created = client.post(
         f"/selections/{selection_id}/nominations/new",
-        json={"title": "Dune", "author": "Frank Herbert", "epoch": "first", "comment": None},
+        json={
+            "title": "Dune",
+            "author": "Frank Herbert",
+            "epoch": "first",
+            "meeting_date": "2026-09-28",
+            "comment": None,
+        },
         headers=auth_headers(user_token),
     )
     assert created.status_code == 201, created.text
-    assert created.json()["epoch"] == "first"
+    assert "epoch" not in created.json()
+    assert created.json()["meeting_date"] == "2026-09-28"
 
     changed = client.patch(
         f"/selections/{selection_id}/nominations/me/change-book/new",
-        json={"title": "Foundation", "author": "Isaac Asimov", "epoch": "second"},
+        json={
+            "title": "Foundation",
+            "author": "Isaac Asimov",
+            "epoch": "second",
+            "meeting_date": "2027-01-02",
+        },
         headers=auth_headers(user_token),
     )
     assert changed.status_code == 200, changed.text
-    assert changed.json()["epoch"] == "second"
+    assert "epoch" not in changed.json()
+    assert changed.json()["meeting_date"] == "2027-01-02"
 
     edited = client.patch(
         f"/selections/{selection_id}/nominations/me/edit-new-book",
@@ -121,7 +134,8 @@ def test_nomination_new_change_and_edit_propagate_epoch(client, db_session):
         headers=auth_headers(user_token),
     )
     assert edited.status_code == 200, edited.text
-    assert edited.json()["epoch"] == "second"
+    assert "epoch" not in edited.json()
+    assert edited.json()["meeting_date"] == "2027-01-02"
 
     explicitly_cleared = client.patch(
         f"/selections/{selection_id}/nominations/me/edit-new-book",
@@ -129,32 +143,9 @@ def test_nomination_new_change_and_edit_propagate_epoch(client, db_session):
         headers=auth_headers(user_token),
     )
     assert explicitly_cleared.status_code == 200, explicitly_cleared.text
-    assert explicitly_cleared.json()["epoch"] is None
+    assert "epoch" not in explicitly_cleared.json()
+    assert explicitly_cleared.json()["meeting_date"] == "2027-01-02"
 
-
-def test_reusing_title_author_does_not_overwrite_existing_epoch(client, db_session):
-    moderator_token = register_user(client, "moderator", "moderator_login")
-    promote_to_moderator(db_session, "moderator_login")
-    first_user_token = register_user(client, "reader1", "reader1_login")
-    second_user_token = register_user(client, "reader2", "reader2_login")
-    selection_id = create_selection(client, db_session, moderator_token)
-
-    first = client.post(
-        f"/selections/{selection_id}/nominations/new",
-        json={"title": "Dune", "author": "Frank Herbert", "epoch": "original", "comment": None},
-        headers=auth_headers(first_user_token),
-    )
-    assert first.status_code == 201, first.text
-
-    reused = client.post(
-        f"/selections/{selection_id}/nominations/new",
-        json={"title": "  dune ", "author": " frank herbert ", "epoch": "ignored", "comment": None},
-        headers=auth_headers(second_user_token),
-    )
-    assert reused.status_code == 201, reused.text
-    assert reused.json()["epoch"] == "original"
-
-    stored = db_session.execute(
-        select(Book).where(Book.normalized_title == "dune", Book.normalized_author == "frank herbert")
-    ).scalar_one()
-    assert stored.epoch == "original"
+    stored_books = db_session.execute(select(Book)).scalars().all()
+    assert len(stored_books) == 2
+    assert all(not hasattr(book, "epoch") for book in stored_books)

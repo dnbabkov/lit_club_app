@@ -16,6 +16,8 @@ import { ReviewList } from "../components/reviews/ReviewList"
 import { ReviewForm } from "../components/reviews/ReviewForm"
 import { BookEditor } from "../components/books/BookEditor"
 import { BookAssignUserForm } from "../components/books/BookAssignUserForm"
+import { BookMetadataRow } from "../components/books/BookMetadataRow"
+import { QuotesSection } from "../components/quotes/QuotesSection"
 import type { BookRead } from "../types/books"
 import type { ReviewRead } from "../types/reviews"
 import type { UserRead } from "../api/auth"
@@ -30,15 +32,15 @@ function buildBackendUrl(path: string): string {
   return `${API_URL}${path}`
 }
 
-function formatAverageRating(reviews: ReviewRead[]): string {
+function formatAverageRating(reviews: ReviewRead[]): number | null {
   if (reviews.length === 0) {
-    return "Нет оценок"
+    return null
   }
 
   const sum = reviews.reduce((acc, review) => acc + review.rating, 0)
   const average = sum / reviews.length
 
-  return `${average.toFixed(1)}/5`
+  return average
 }
 
 export function BookPage() {
@@ -57,6 +59,7 @@ export function BookPage() {
   const [isEditReviewOpen, setIsEditReviewOpen] = useState(false)
   const [isBookEditorOpen, setIsBookEditorOpen] = useState(false)
   const [isAssignUserFormOpen, setIsAssignUserFormOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<"reviews" | "quotes">("reviews")
 
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
@@ -131,6 +134,7 @@ export function BookPage() {
       setIsEditReviewOpen(false)
       setIsBookEditorOpen(false)
       setIsAssignUserFormOpen(false)
+      setActiveTab("reviews")
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message)
@@ -402,18 +406,6 @@ export function BookPage() {
                   {book.author}
                 </div>
 
-                {book.epoch && (
-                  <div style={{ color: "#555", marginBottom: 12 }}>
-                    <strong>Эпоха:</strong> {book.epoch}
-                  </div>
-                )}
-
-                {book.meeting_date && (
-                  <div style={{ color: "#555", marginBottom: 12 }}>
-                    <strong>Дата собрания:</strong> {book.meeting_date}
-                  </div>
-                )}
-
                 <div style={{ marginBottom: 12 }}>
                   {book.book_file ? (
                     <div style={{ marginBottom: 8 }}>
@@ -464,9 +456,6 @@ export function BookPage() {
                   )}
                 </div>
 
-                <p style={{ margin: "4px 0" }}>
-                  <strong>Средняя оценка:</strong> {averageRating}
-                </p>
               </div>
 
               <div>
@@ -477,6 +466,11 @@ export function BookPage() {
                     ? book.description
                     : "Описание пока не добавлено"}
                 </div>
+
+                <BookMetadataRow
+                  meetingDate={book.meeting_date}
+                  averageRating={averageRating}
+                />
 
                 {(canEditBook || canAssignUserToBook) && (
                   <div
@@ -524,7 +518,16 @@ export function BookPage() {
             />
           )}
 
-          <div style={{ marginBottom: 32 }}>
+          <div role="tablist" aria-label="Содержимое книги" style={{ display: "flex", gap: 8, borderBottom: "1px solid #ddd", marginTop: 32 }}>
+            <button type="button" role="tab" aria-selected={activeTab === "reviews"} aria-controls="reviews-panel" onClick={() => setActiveTab("reviews")}>
+              Отзывы
+            </button>
+            <button type="button" role="tab" aria-selected={activeTab === "quotes"} aria-controls="quotes-panel" onClick={() => setActiveTab("quotes")}>
+              Цитаты
+            </button>
+          </div>
+
+          {activeTab === "reviews" && <div id="reviews-panel" role="tabpanel" aria-label="Отзывы" style={{ marginBottom: 32 }}>
             <h2>Мой отзыв</h2>
 
             {!myReview && !isCreateReviewOpen && (
@@ -583,12 +586,16 @@ export function BookPage() {
                 submitLabel="Сохранить изменения"
               />
             )}
-          </div>
+          </div>}
 
-          <div style={{ marginTop: 32 }}>
-            <h2>Отзывы</h2>
+          {activeTab === "reviews" && <div style={{ marginTop: 32 }}>
+            <h2>Отзывы других читателей</h2>
             <ReviewList reviews={otherReviews} />
-          </div>
+          </div>}
+
+          {activeTab === "quotes" && <div id="quotes-panel" role="tabpanel" aria-label="Цитаты" style={{ marginTop: 24 }}>
+            <QuotesSection bookId={book.id} key={book.id} currentUserId={currentUser?.id ?? null} isAdmin={isAdmin} />
+          </div>}
         </>
       )}
     </Layout>

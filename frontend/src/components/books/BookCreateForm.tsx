@@ -9,7 +9,6 @@ type BookCreateFormProps = {
 export function BookCreateForm({ onSuccess }: BookCreateFormProps) {
   const [title, setTitle] = useState("")
   const [author, setAuthor] = useState("")
-  const [epoch, setEpoch] = useState("")
   const [meetingDate, setMeetingDate] = useState("")
   const [description, setDescription] = useState("")
   const [errorMessage, setErrorMessage] = useState("")
@@ -24,14 +23,12 @@ export function BookCreateForm({ onSuccess }: BookCreateFormProps) {
       await createBook({
         title,
         author,
-        epoch: epoch || null,
         meeting_date: meetingDate || null,
         description: description || null,
       })
 
       setTitle("")
       setAuthor("")
-      setEpoch("")
       setMeetingDate("")
       setDescription("")
       await onSuccess()
@@ -59,18 +56,6 @@ export function BookCreateForm({ onSuccess }: BookCreateFormProps) {
       }}
     >
       <h2>Добавить книгу</h2>
-
-      <div style={{ marginBottom: 12 }}>
-        <label htmlFor="new-book-epoch">Эпоха</label>
-        <input
-          id="new-book-epoch"
-          type="text"
-          value={epoch}
-          maxLength={10}
-          onChange={(event) => setEpoch(event.target.value)}
-          style={{ display: "block", width: "100%", padding: 8, marginTop: 4 }}
-        />
-      </div>
 
       <div style={{ marginBottom: 12 }}>
         <label htmlFor="new-book-meeting-date">Дата собрания</label>

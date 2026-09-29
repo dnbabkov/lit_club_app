@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
 import { getComicImage } from "../api/comics"
 
-export function ComicImage({ path, file, alt, className }: {
-  path?: string | null; file?: File; alt: string; className?: string
+export function ComicImage({ path, file, preloadedUrl, alt, className }: {
+  path?: string | null; file?: File; preloadedUrl?: string; alt: string; className?: string
 }) {
   const [image, setImage] = useState<{ source: string | File; url: string } | null>(null)
   const [failed, setFailed] = useState<string | File | null>(null)
@@ -10,6 +10,7 @@ export function ComicImage({ path, file, alt, className }: {
   const source = file ?? path
 
   useEffect(() => {
+    if (preloadedUrl) return
     if (!source) return
     const controller = new AbortController()
     let url: string | undefined
@@ -23,8 +24,9 @@ export function ComicImage({ path, file, alt, className }: {
       if (!controller.signal.aborted) setFailed(source)
     })
     return () => { controller.abort(); if (url) URL.revokeObjectURL(url) }
-  }, [source, attempt])
+  }, [source, attempt, preloadedUrl])
 
+  if (preloadedUrl) return <img className={className} src={preloadedUrl} alt={alt} />
   if (!source) return <div className="comic-placeholder">Нет обложки</div>
   if (failed === source) return <div role="alert">Не удалось загрузить изображение. <button type="button" onClick={() => { setFailed(null); setAttempt(value => value + 1) }}>Повторить</button></div>
   if (image?.source !== source) return <div className="comic-placeholder" role="status">Загрузка изображения…</div>

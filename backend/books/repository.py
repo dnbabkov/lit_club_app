@@ -11,7 +11,6 @@ from lit_club_app.backend.common.enums import MeetingStatus
 from lit_club_app.backend.reviews.models import Review
 from lit_club_app.backend.users.models import User
 
-EPOCH_UNSET = object()
 MEETING_DATE_UNSET = object()
 
 
@@ -31,7 +30,7 @@ class BookRepository:
         )
         result = db.execute(statement)
         return result.scalar_one_or_none()
-    def create_book(self, db: Session, title: str, author: str, user_id: int, description: str | None = None, epoch: str | None = None, meeting_date=None) -> Book:
+    def create_book(self, db: Session, title: str, author: str, user_id: int, description: str | None = None, meeting_date=None) -> Book:
 
         clean_title = title.strip()
         clean_author = author.strip()
@@ -39,7 +38,6 @@ class BookRepository:
         book = Book(
             title=clean_title,
             author=clean_author,
-            epoch=epoch or None,
             meeting_date=meeting_date,
             description=description,
             normalized_title=title.strip().lower(),
@@ -55,7 +53,7 @@ class BookRepository:
             db.rollback()
             raise
 
-    def update_book_fields(self, db: Session, title: str, author: str, book_id: int, epoch: str | None | object = EPOCH_UNSET, meeting_date = MEETING_DATE_UNSET) -> Book:
+    def update_book_fields(self, db: Session, title: str, author: str, book_id: int, meeting_date = MEETING_DATE_UNSET) -> Book:
         book = self.get_by_id(db=db, book_id=book_id)
         if book is None:
             raise BookNotFoundError()
@@ -66,8 +64,6 @@ class BookRepository:
             book.author = clean_author
             book.normalized_title = clean_title.lower()
             book.normalized_author = clean_author.lower()
-            if epoch is not EPOCH_UNSET:
-                book.epoch = epoch or None
             if meeting_date is not MEETING_DATE_UNSET:
                 book.meeting_date = meeting_date
             db.commit()
@@ -111,6 +107,27 @@ class BookRepository:
         statement = (select(Book))
         result = db.execute(statement)
         return result.scalars().all()
+
+    def get_top_books(self, db: Session, limit: int = 10) -> Sequence[tuple[Book, float, int]]:
+        statement = (
+            select(Book, func.avg(Review.rating), func.count(Review.id))
+            .join(Review, Review.book_id == Book.id)
+            .group_by(Book.id)
+            .order_by(func.avg(Review.rating).desc(), func.count(Review.id).desc(), Book.id)
+            .limit(limit)
+        )
+        result = db.execute(statement)
+        return result.tuples().all()
+
+    def get_year_winner_candidates(self, db: Session) -> Sequence[tuple[Book, float, int]]:
+        statement = (
+            select(Book, func.avg(Review.rating), func.count(Review.id))
+            .join(Review, Review.book_id == Book.id)
+            .where(Book.meeting_date.is_not(None))
+            .group_by(Book.id)
+        )
+        result = db.execute(statement)
+        return result.tuples().all()
 
     def get_meeting_books(self, db: Session) -> Sequence[tuple[Book, MeetingStatus]]:
         statement = (

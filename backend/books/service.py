@@ -1,5 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
+from random import choice
 from typing import Sequence
 
 from fastapi import UploadFile
@@ -7,8 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from lit_club_app.backend.books.models import Book
-from lit_club_app.backend.books.repository import BookRepository, EPOCH_UNSET, MEETING_DATE_UNSET
-from lit_club_app.backend.books.schemas import BookWithReviewsRead, BookRead, BooksRead, CanDeleteBookRead
+from lit_club_app.backend.books.repository import BookRepository, MEETING_DATE_UNSET
+from lit_club_app.backend.books.schemas import BookWithReviewsRead, BookRead, BooksRead, CanDeleteBookRead, TopBookRead, YearWinnerRead
 from lit_club_app.backend.common.enums import Roles, UploadedFileTypes
 from lit_club_app.backend.core.config import settings
 from lit_club_app.backend.core.exceptions import BookNotFoundError, EmptyDescriptionError, BookAlreadyExistsError, \
@@ -52,11 +53,11 @@ class BookService:
 
         return has_delete_rights and not is_nominated and not has_won
 
-    def create_book(self, db: Session, title: str, author: str, description: str | None, user_id: int, epoch: str | None = None, meeting_date=None) -> Book:
+    def create_book(self, db: Session, title: str, author: str, description: str | None, user_id: int, meeting_date=None) -> Book:
         book = self.book_repo.get_by_norm_title_and_author(db=db, norm_title=title.strip().lower(), norm_author=author.strip().lower())
         if book is not None:
             raise BookAlreadyExistsError()
-        return self.book_repo.create_book(db=db, title=title, author=author, description=description, user_id=user_id, epoch=epoch, meeting_date=meeting_date)
+        return self.book_repo.create_book(db=db, title=title, author=author, description=description, user_id=user_id, meeting_date=meeting_date)
 
     def get_book(self, db: Session, book_id: int) -> Book:
         book = self.book_repo.get_by_id(db=db, book_id=book_id)
@@ -66,6 +67,34 @@ class BookService:
 
     def get_all_books(self, db: Session) -> Sequence[Book]:
         return self.book_repo.get_all_books(db=db)
+
+    def get_top_books(self, db: Session) -> list[TopBookRead]:
+        return [
+            TopBookRead(
+                id=book.id,
+                title=book.title,
+                author=book.author,
+                average_rating=average_rating,
+                review_count=review_count,
+            )
+            for book, average_rating, review_count in self.book_repo.get_top_books(db=db)
+        ]
+
+    def get_year_winners(self, db: Session) -> list[YearWinnerRead]:
+        candidates_by_year: dict[int, list[tuple[Book, float, int]]] = defaultdict(list)
+        for book, average_rating, review_count in self.book_repo.get_year_winner_candidates(db=db):
+            start_year = book.meeting_date.year if book.meeting_date.month >= 9 else book.meeting_date.year - 1
+            candidates_by_year[start_year].append((book, average_rating, review_count))
+
+        winners = []
+        for start_year in sorted(candidates_by_year):
+            candidates = candidates_by_year[start_year]
+            best_average = max(candidate[1] for candidate in candidates)
+            best_count = max(candidate[2] for candidate in candidates if candidate[1] == best_average)
+            tied = [candidate for candidate in candidates if candidate[1] == best_average and candidate[2] == best_count]
+            book = choice(tied)[0]
+            winners.append(YearWinnerRead(start_year=start_year, id=book.id, title=book.title, author=book.author))
+        return winners
 
     def get_all_books_with_reviews(self, db: Session) -> list[BookWithReviewsRead]:
         all_books = self.book_repo.get_all_books(db=db)
@@ -90,13 +119,13 @@ class BookService:
 
         return results
 
-    def update_book_fields(self, db: Session, title: str, author: str, book_id: int, user: User, epoch: str | None | object = EPOCH_UNSET, meeting_date = MEETING_DATE_UNSET) -> Book:
+    def update_book_fields(self, db: Session, title: str, author: str, book_id: int, user: User, meeting_date = MEETING_DATE_UNSET) -> Book:
         book = self.book_repo.get_by_id(db=db, book_id=book_id)
         if book is None:
             raise BookNotFoundError()
         if book.user_id is not None and book.user_id != user.id and user.role != Roles.ADMIN and user.role != Roles.MODERATOR:
             raise NotYourBookError()
-        book = self.book_repo.update_book_fields(db=db, title=title, author=author, book_id=book_id, epoch=epoch, meeting_date=meeting_date)
+        book = self.book_repo.update_book_fields(db=db, title=title, author=author, book_id=book_id, meeting_date=meeting_date)
         return book
 
     def delete_book(self, db: Session, book_id: int, user: User) -> None:
@@ -191,7 +220,6 @@ class BookService:
                 "id": book.id,
                 "title": book.title,
                 "author": book.author,
-                "epoch": book.epoch,
                 "meeting_date": book.meeting_date,
                 "description": book.description,
                 "user_id": book.user_id,
