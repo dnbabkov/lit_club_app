@@ -145,7 +145,7 @@ async def handle_service_msg(msg, event, client, db) -> service_ans:
         ids_list = user_service.get_all_tg_ids(db)
         ids = ''
         for user_id in ids_list:
-            if user_id != 'niger':
+            if user_id != '@niger':
                 ids += user_id + ' '
 
         return service_ans(ids)
